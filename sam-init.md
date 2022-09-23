@@ -41,7 +41,7 @@ Cloning from https://github.com/aws/aws-sam-cli-app-templates (process may take 
     Runtime: go1.x
     Architectures: x86_64
     Dependency Manager: mod
-    Application Template: hello-world
+    Application Template: instance-scheduler
     Output Directory: .
     
     Next steps can be found in the README file at ./modernisation-platform-instance-scheduler/README.md

@@ -6,7 +6,7 @@ This is a sample template for modernisation-platform-instance-scheduler - Below 
 .
 ├── Makefile                    <-- Make to automate build
 ├── README.md                   <-- This instructions file
-├── hello-world                 <-- Source code for a lambda function
+├── instance-scheduler                 <-- Source code for a lambda function
 │   ├── main.go                 <-- Lambda function code
 │   └── main_test.go            <-- Unit tests
 └── template.yaml
@@ -47,7 +47,7 @@ If the previous command ran successfully you should now be able to hit the follo
 ```yaml
 ...
 Events:
-  HelloWorld:
+  InstanceScheduler:
     Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
     Properties:
       Path: /hello
@@ -88,7 +88,7 @@ You can find your API Gateway Endpoint URL in the output values displayed after 
 We use `testing` package that is built-in in Golang and you can simply run the following command to run our tests:
 
 ```shell
-go test -v ./hello-world/
+go test -v ./instance-scheduler/
 ```
 # Appendix
 

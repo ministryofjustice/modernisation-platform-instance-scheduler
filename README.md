@@ -34,14 +34,14 @@ Deploy
 
 Module initialisation. The following commands were used in order to generate the required `go.mod` and `go.sum` files prior to the first run of the tests.
     
-    cd hello-world
+    cd instance-scheduler
     go mod init github.com/ministryofjustice/modernisation-platform-instance-scheduler
     go mod tidy
     go mod download
 
 Run tests
 
-    cd hello-world
+    cd instance-scheduler
     aws-vault exec mod -- go test -v .
 
 ## Ministry of Justice Template Repository
