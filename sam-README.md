@@ -40,7 +40,7 @@ make
 sam local start-api
 ```
 
-If the previous command ran successfully you should now be able to hit the following local endpoint to invoke your function `http://localhost:3000/hello`
+If the previous command ran successfully you should now be able to hit the following local endpoint to invoke your function `http://localhost:3000/instance-scheduler`
 
 **SAM CLI** is used to emulate both Lambda and API Gateway locally and uses our `template.yaml` to understand how to bootstrap this environment (runtime, where the source code is, etc.) - The following excerpt is what the CLI will read in order to initialize an API and its routes:
 
@@ -50,7 +50,7 @@ Events:
   InstanceScheduler:
     Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
     Properties:
-      Path: /hello
+      Path: /instance-scheduler
       Method: get
 ```
 
@@ -63,7 +63,7 @@ AWS Lambda Golang runtime requires a flat folder with the executable generated o
 FirstFunction:
   Type: AWS::Serverless::Function
   Properties:
-    CodeUri: hello_world/
+    CodeUri: instance-scheduler_world/
     ...
 ```
 
@@ -131,10 +131,10 @@ choco upgrade golang
 
 Here are a few ideas that you can use to get more acquainted as to how this overall process works:
 
-* Create an additional API resource (e.g. /hello/{proxy+}) and return the name requested through this new path
+* Create an additional API resource (e.g. /instance-scheduler/{proxy+}) and return the name requested through this new path
 * Update unit test to capture that
 * Package & Deploy
 
-Next, you can use the following resources to know more about beyond hello world samples and how others structure their Serverless applications:
+Next, you can use the following resources to know more about beyond instance scheduler samples and how others structure their Serverless applications:
 
 * [AWS Serverless Application Repository](https://aws.amazon.com/serverless/serverlessrepo/)

@@ -16,6 +16,8 @@ Install dependencies & build the target
     cd modernisation-platform-instance-scheduler
     make
 
+> :warning: Code changes require a rebuild before you're able to run them. Use `local-re-run.sh` as a utility script when re-runing local code changes.
+
 Validate SAM template
 
     aws-vault exec mod -- sam validate
@@ -43,6 +45,10 @@ Run tests
 
     cd instance-scheduler
     aws-vault exec mod -- go test -v .
+
+## References
+
+1. [How the original Go SAM project was created](sam-init.md)
 
 ## Ministry of Justice Template Repository
 
