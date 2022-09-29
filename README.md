@@ -35,7 +35,7 @@ Deploy
     aws-vault exec mod -- sam deploy --guided
 
 Module initialisation. The following commands were used in order to generate the required `go.mod` and `go.sum` files prior to the first run of the tests.
-    
+
     cd instance-scheduler
     go mod init github.com/ministryofjustice/modernisation-platform-instance-scheduler
     go mod tidy

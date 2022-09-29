@@ -1,4 +1,3 @@
-
 ## How the original Go SAM project was created
 
 Init a Go SAM project
@@ -43,9 +42,9 @@ Cloning from https://github.com/aws/aws-sam-cli-app-templates (process may take 
     Dependency Manager: mod
     Application Template: instance-scheduler
     Output Directory: .
-    
+
     Next steps can be found in the README file at ./modernisation-platform-instance-scheduler/README.md
-        
+
 
     Commands you can use next
     =========================
