@@ -1,4 +1,56 @@
-# Ministry of Justice Template Repository
+# Instance Scheduler
+
+## Install SAM CLI
+
+```
+brew tap aws/tap
+brew install aws-sam-cli
+```
+
+See also: https://aws.amazon.com/serverless/sam/
+
+## How to run, test, deploy
+
+Install dependencies & build the target
+
+    cd modernisation-platform-instance-scheduler
+    make
+
+> :warning: Code changes require a rebuild before you're able to run them. Use `local-re-run.sh` as a utility script when re-runing local code changes.
+
+Validate SAM template
+
+    aws-vault exec mod -- sam validate
+
+Invoke Function
+
+    aws-vault exec mod -- sam local invoke
+
+Test Function in the Cloud
+
+    aws-vault exec mod -- sam sync --stack-name {stack-name} --watch
+
+Deploy
+
+    aws-vault exec mod -- sam deploy --guided
+
+Module initialisation. The following commands were used in order to generate the required `go.mod` and `go.sum` files prior to the first run of the tests.
+
+    cd instance-scheduler
+    go mod init github.com/ministryofjustice/modernisation-platform-instance-scheduler
+    go mod tidy
+    go mod download
+
+Run tests
+
+    cd instance-scheduler
+    aws-vault exec mod -- go test -v .
+
+## References
+
+1. [How the original Go SAM project was created](sam-init.md)
+
+## Ministry of Justice Template Repository
 
 [![repo standards badge](https://img.shields.io/badge/dynamic/json?color=blue&style=for-the-badge&logo=github&label=MoJ%20Compliant&query=%24.data%5B%3F%28%40.name%20%3D%3D%20%22template-repository%22%29%5D.status&url=https%3A%2F%2Foperations-engineering-reports.cloud-platform.service.justice.gov.uk%2Fgithub_repositories)](https://operations-engineering-reports.cloud-platform.service.justice.gov.uk/github_repositories#template-repository "Link to report")
 
