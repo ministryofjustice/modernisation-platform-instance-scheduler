@@ -145,10 +145,11 @@ func stopStartInstancesInMemberAccount(client *ec2.Client, action string) {
 			var instanceSchedulingTag string
 			instanceIsPartOfAutoScalingGroup := false
 			for _, tag := range i.Tags {
-				if *tag.Key == "instance-scheduling" {
-					instanceSchedulingTag = *tag.Value
-				} else if *tag.Key == "aws:autoscaling:groupName" {
+				if *tag.Key == "aws:autoscaling:groupName" {
 					instanceIsPartOfAutoScalingGroup = true
+					break
+				} else if *tag.Key == "instance-scheduling" {
+					instanceSchedulingTag = *tag.Value
 				}
 			}
 
