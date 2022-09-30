@@ -139,12 +139,16 @@ func stopStartInstancesInMemberAccount(client *ec2.Client, action string) {
 
 	instancesActedUpon := []string{}
 	skippedInstances := []string{}
+	skippedAutoScaledInstances := []string{}
 	for _, r := range result.Reservations {
 		for _, i := range r.Instances {
 			var instanceSchedulingTag string
+			instanceIsPartOfAutoScalingGroup := false
 			for _, tag := range i.Tags {
 				if *tag.Key == "instance-scheduling" {
 					instanceSchedulingTag = *tag.Value
+				} else if *tag.Key == "aws:autoscaling:groupName" {
+					instanceIsPartOfAutoScalingGroup = true
 				}
 			}
 
@@ -155,9 +159,14 @@ func stopStartInstancesInMemberAccount(client *ec2.Client, action string) {
 
 			actedUponMessage := fmt.Sprintf("%v instance %v (ReservationId: %v) %v\n", action, *i.InstanceId, *r.ReservationId, instanceSchedulingTagDescr)
 			skippedMessage := fmt.Sprintf("Skipped instance %v (ReservationId: %v) %v\n", *i.InstanceId, *r.ReservationId, instanceSchedulingTagDescr)
-			// Tag key: instance-scheduling
-			// Valid values: default (same as absence of tag), skip-scheduling, skip-auto-stop, skip-auto-start
-			if (instanceSchedulingTag == "") || (instanceSchedulingTag == "default") {
+			skippedAutoScaledMessage := fmt.Sprintf("Skipped instance %v (ReservationId: %v) with aws:autoscaling:groupName tag because it is part of an Auto Scaling group\n", *i.InstanceId, *r.ReservationId)
+
+			if instanceIsPartOfAutoScalingGroup {
+				log.Print(skippedAutoScaledMessage)
+				skippedAutoScaledInstances = append(skippedAutoScaledInstances, *i.InstanceId)
+			} else if (instanceSchedulingTag == "") || (instanceSchedulingTag == "default") {
+				// Tag key: instance-scheduling
+				// Valid values: default (same as absence of tag), skip-scheduling, skip-auto-stop, skip-auto-start
 				log.Print(actedUponMessage)
 				instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
 				if action == "Stop" {
@@ -197,10 +206,13 @@ func stopStartInstancesInMemberAccount(client *ec2.Client, action string) {
 	if len(instancesActedUpon) > 0 {
 		log.Printf("%v %v instances: %v\n", acted, len(instancesActedUpon), instancesActedUpon)
 	} else {
-		log.Printf("WARN: No instances were %v!\n", acted)
+		log.Printf("WARN: No instances found to %v!\n", action)
 	}
 	if len(skippedInstances) > 0 {
-		log.Printf("Skipped %v instances: %v\n", len(skippedInstances), skippedInstances)
+		log.Printf("Skipped %v instances due to instance-scheduling tag: %v\n", len(skippedInstances), skippedInstances)
+	}
+	if len(skippedAutoScaledInstances) > 0 {
+		log.Printf("Skipped %v instances due to aws:autoscaling:groupName tag: %v\n", len(skippedAutoScaledInstances), skippedAutoScaledInstances)
 	}
 }
 
