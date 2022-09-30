@@ -45,7 +45,6 @@ If the previous command ran successfully you should now be able to hit the follo
 **SAM CLI** is used to emulate both Lambda and API Gateway locally and uses our `template.yaml` to understand how to bootstrap this environment (runtime, where the source code is, etc.) - The following excerpt is what the CLI will read in order to initialize an API and its routes:
 
 ```yaml
-
 ---
 Events:
   InstanceScheduler:
