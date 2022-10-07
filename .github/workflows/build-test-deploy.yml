@@ -33,6 +33,3 @@ jobs:
       - name: Run Tests
         working-directory: instance-scheduler
         run: go test -v
-      # Prevent prompts and failure when the stack is unchanged
-#      - name: SAM Deploy
-#        run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --region ${{ env.AWS_REGION }}
