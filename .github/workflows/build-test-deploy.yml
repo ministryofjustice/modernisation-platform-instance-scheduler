@@ -1,17 +1,24 @@
 name: Build-test-deploy
-
 on:
   push:
     branches:
-      - features/deploy
-
+      - main
+    paths:
+      - 'instance-scheduler/**'
+      - '.github/workflows/build-test-deploy.yml'
+  pull_request:
+    branches:
+      - main
+    types: [ opened, edited, reopened, synchronize ]
+    paths:
+      - 'instance-scheduler/**'
+      - '.github/workflows/build-test-deploy.yml'
+  workflow_dispatch:
 env:
   AWS_REGION: "eu-west-2"
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
 jobs:
-
   build-test-deploy:
     runs-on: ubuntu-latest
     steps:
@@ -33,3 +40,6 @@ jobs:
       - name: Run Tests
         working-directory: instance-scheduler
         run: go test -v
+      - name: Deploy
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: echo Only deploy upon push to the main branch
