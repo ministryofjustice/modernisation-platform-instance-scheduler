@@ -1,0 +1,43 @@
+name: Build-test-deploy
+
+on:
+  push:
+    branches:
+      - features/deploy
+
+env:
+  AWS_REGION: "eu-west-2"
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_COOKER }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_COOKER }}
+
+jobs:
+
+  build-test-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3.1.0
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      - uses: aws-actions/setup-sam@v2
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_COOKER }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_COOKER }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: SAM Validate
+        run: |
+          sam validate
+      # Build inside Docker containers
+      - name: SAM Build
+        run: sam build --use-container
+      - name: Download Go Modules
+        working-directory: instance-scheduler
+        run: go mod download
+      - name: Run Tests
+        working-directory: instance-scheduler
+        run: go test -v
+      # Prevent prompts and failure when the stack is unchanged
+      - name: SAM Deploy
+        run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset

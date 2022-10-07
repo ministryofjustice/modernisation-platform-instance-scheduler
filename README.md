@@ -16,7 +16,7 @@ Install dependencies & build the target
     cd modernisation-platform-instance-scheduler
     make
 
-> :warning: Code changes require a rebuild before you're able to run them. Use `local-re-run.sh` as a utility script when re-runing local code changes.
+> :warning: Code changes require a rebuild before you're able to run them. Use `local-re-run.sh` as a utility script when re-running local code changes.
 
 Validate SAM template
 
