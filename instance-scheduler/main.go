@@ -128,7 +128,7 @@ func startInstance(client *ec2.Client, instanceId string) {
 	}
 }
 
-func stopStartInstancesInMemberAccount(client *ec2.Client, action string) {
+func stopStartTestInstancesInMemberAccount(client *ec2.Client, action string) {
 	input := &ec2.DescribeInstancesInput{}
 
 	result, err := client.DescribeInstances(context.TODO(), input)
@@ -172,8 +172,10 @@ func stopStartInstancesInMemberAccount(client *ec2.Client, action string) {
 				instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
 				if action == "Stop" {
 					stopInstance(client, *i.InstanceId)
-				} else {
+				} else if action == "Start" {
 					startInstance(client, *i.InstanceId)
+				} else if action == "Test" {
+					log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
 				}
 			} else if instanceSchedulingTag == "skip-scheduling" {
 				log.Print(skippedMessage)
@@ -182,19 +184,23 @@ func stopStartInstancesInMemberAccount(client *ec2.Client, action string) {
 				if action == "Stop" {
 					log.Print(skippedMessage)
 					skippedInstances = append(skippedInstances, *i.InstanceId)
-				} else {
+				} else if action == "Start" {
 					log.Print(actedUponMessage)
 					instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
 					startInstance(client, *i.InstanceId)
+				} else if action == "Test" {
+					log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
 				}
 			} else if instanceSchedulingTag == "skip-auto-start" {
 				if action == "Stop" {
 					log.Print(actedUponMessage)
 					instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
 					stopInstance(client, *i.InstanceId)
-				} else {
+				} else if action == "Start" {
 					log.Print(skippedMessage)
 					skippedInstances = append(skippedInstances, *i.InstanceId)
+				} else if action == "Test" {
+					log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
 				}
 			}
 		}
@@ -203,6 +209,8 @@ func stopStartInstancesInMemberAccount(client *ec2.Client, action string) {
 	acted := "Started"
 	if action == "Stop" {
 		acted = "Stopped"
+	} else if action == "Test" {
+		acted = "Tested"
 	}
 	if len(instancesActedUpon) > 0 {
 		log.Printf("%v %v instances: %v\n", acted, len(instancesActedUpon), instancesActedUpon)
@@ -261,7 +269,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		} else {
 			memberAccountNames = append(memberAccountNames, accName)
 			log.Printf("BEGIN: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
-			stopStartInstancesInMemberAccount(ec2Client, action)
+			stopStartTestInstancesInMemberAccount(ec2Client, action)
 			log.Printf("END: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
 		}
 	}
