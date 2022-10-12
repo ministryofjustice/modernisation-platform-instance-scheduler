@@ -52,6 +52,3 @@ jobs:
 #        run: go test -v
       - name: SAM Package
         run: sam package --image-repository $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo
-      - name: Deploy
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        run: echo Only deploy upon push to the main branch

@@ -30,9 +30,9 @@ Test Function in the Cloud
 
     aws-vault exec mod -- sam sync --stack-name {stack-name} --watch
 
-Deploy
+Deploy on cooker-development using the local `samconfig.toml` and preventing prompts and failure when the stack is unchanged
 
-    aws-vault exec mod -- sam deploy --guided
+    aws-vault exec cooker-development -- sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --region ${{ env.AWS_REGION }}
 
 Module initialisation. The following commands were used in order to generate the required `go.mod` and `go.sum` files prior to the first run of the tests.
 
