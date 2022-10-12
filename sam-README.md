@@ -63,7 +63,7 @@ AWS Lambda Golang runtime requires a flat folder with the executable generated o
 FirstFunction:
   Type: AWS::Serverless::Function
   Properties:
-    CodeUri: instance-scheduler_world/
+    CodeUri: instance_scheduler/
     ...
 ```
 
@@ -136,6 +136,6 @@ Here are a few ideas that you can use to get more acquainted as to how this over
 - Update unit test to capture that
 - Package & Deploy
 
-Next, you can use the following resources to know more about beyond instance scheduler samples and how others structure their Serverless applications:
+Next, you can use the following resources to know more about beyond hello world samples and how others structure their Serverless applications:
 
 - [AWS Serverless Application Repository](https://aws.amazon.com/serverless/serverlessrepo/)

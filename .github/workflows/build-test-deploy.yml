@@ -1,0 +1,54 @@
+name: Build-test-deploy
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'instance-scheduler/**'
+      - '.github/workflows/build-test-deploy.yml'
+  pull_request:
+    branches:
+      - main
+    types: [ opened, edited, reopened, synchronize ]
+    paths:
+      - 'instance-scheduler/**'
+      - '.github/workflows/build-test-deploy.yml'
+  workflow_dispatch:
+env:
+  AWS_REGION: "eu-west-2"
+  ACCOUNT_NUMBER: ${{ secrets.CORE_SHARED_SERVICES_ACCOUNT_ID }}
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3.1.0
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: "arn:aws:iam::${{ env.ACCOUNT_NUMBER }}:role/github-actions"
+          role-session-name: githubactionsrolesession
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      - uses: aws-actions/setup-sam@v2
+      - name: SAM Validate
+        run: |
+          sam validate --region ${{ env.AWS_REGION }}
+      # Build inside Docker containers
+      - name: SAM Build
+        run: sam build --use-container --region ${{ env.AWS_REGION }}
+      - name: Download Go Modules
+        working-directory: instance-scheduler
+        run: go mod download
+#      - name: Run Tests
+#        working-directory: instance-scheduler
+#        run: go test -v
+      - name: SAM Package
+        run: sam package --image-repository $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo
