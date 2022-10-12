@@ -21,6 +21,8 @@ import (
 	"github.com/aws/smithy-go"
 )
 
+const INSTANCE_SCHEDULER_VERSION string = "1.0"
+
 /*
 ENV variable INSTANCE_SCHEDULING_SKIP_ACCOUNTS: A comma-separated list of account names to be skipped from instance scheduling. For example:
 "xhibit-portal-development,another-development,".
@@ -249,7 +251,7 @@ func getEc2ClientForMemberAccount(cfg aws.Config, accountName string, accountId 
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	action := os.Getenv("INSTANCE_SCHEDULING_ACTION")
 	skipAccounts := os.Getenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS")
-	log.Println("BEGIN: Instance scheduling")
+	log.Printf("BEGIN: Instance scheduling v%v\n", INSTANCE_SCHEDULER_VERSION)
 	log.Printf("INSTANCE_SCHEDULING_ACTION=%v\n", action)
 	log.Printf("INSTANCE_SCHEDULING_SKIP_ACCOUNTS=%v\n", skipAccounts)
 
