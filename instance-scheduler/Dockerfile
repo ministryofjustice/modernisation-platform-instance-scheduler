@@ -3,6 +3,9 @@ FROM public.ecr.aws/lambda/go:1 as builder
 # Copy function code
 COPY . .
 
+RUN yum install -y golang
+RUN go env -w GOPROXY=direct
+
 RUN CGO_ENABLED=0 go build \
     -o /instance-scheduler .
 
