@@ -5,14 +5,14 @@ on:
       - main
     paths:
       - 'instance-scheduler/**'
-      - '.github/workflows/build-test-deploy.yml'
+      - '.github/workflows/build-test-push.yml'
   pull_request:
     branches:
       - main
     types: [ opened, edited, reopened, synchronize ]
     paths:
       - 'instance-scheduler/**'
-      - '.github/workflows/build-test-deploy.yml'
+      - '.github/workflows/build-test-push.yml'
   workflow_dispatch:
 env:
   AWS_REGION: "eu-west-2"
