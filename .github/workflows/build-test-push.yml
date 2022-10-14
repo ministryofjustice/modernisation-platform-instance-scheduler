@@ -5,14 +5,14 @@ on:
       - main
     paths:
       - 'instance-scheduler/**'
-      - '.github/workflows/build-test-deploy.yml'
+      - '.github/workflows/build-test-push.yml'
   pull_request:
     branches:
       - main
     types: [ opened, edited, reopened, synchronize ]
     paths:
       - 'instance-scheduler/**'
-      - '.github/workflows/build-test-deploy.yml'
+      - '.github/workflows/build-test-push.yml'
   workflow_dispatch:
 env:
   AWS_REGION: "eu-west-2"
@@ -37,8 +37,6 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: '>=1.18'
-          check-latest: true
-          cache: true
       - uses: aws-actions/setup-sam@v2
       - name: SAM Validate
         run: |
