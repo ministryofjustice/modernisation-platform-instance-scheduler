@@ -47,14 +47,14 @@ jobs:
       - name: Download Go Modules
         working-directory: instance-scheduler
         run: go mod download
-#      - name: Run Tests
-#        working-directory: instance-scheduler
-#        run: go test -v
-      - name: SAM Package
-        run: sam package --image-repository $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo
-      - name: Add the `latest` tag to the container image
-        run: docker tag instanceschedulerfunction:1.0 $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:latest
-      - name: Login to ECR
-        run: aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com
-      - name: Push the container image with the `latest` tag to ECR
-        run: docker push $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:latest
+      - name: Run Tests
+        working-directory: instance-scheduler
+        run: go test -v
+#      - name: SAM Package
+#        run: sam package --image-repository $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo
+#      - name: Add the `latest` tag to the container image
+#        run: docker tag instanceschedulerfunction:1.0 $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:latest
+#      - name: Login to ECR
+#        run: aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com
+#      - name: Push the container image with the `latest` tag to ECR
+#        run: docker push $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:latest
