@@ -268,7 +268,6 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	log.Printf("BEGIN: Instance scheduling v%v\n", INSTANCE_SCHEDULER_VERSION)
 	log.Printf("INSTANCE_SCHEDULING_ACTION=%v\n", action)
 	log.Printf("INSTANCE_SCHEDULING_SKIP_ACCOUNTS=%v\n", skipAccounts)
-	log.Printf("INSTANCE_SCHEDULING_ENVIRONMENT_MANAGEMENT_SECRET_ID=%v\n", os.Getenv("INSTANCE_SCHEDULING_ENVIRONMENT_MANAGEMENT_SECRET_ID"))
 
 	// Load the Shared AWS Configuration (~/.aws/config)
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("eu-west-2"))
