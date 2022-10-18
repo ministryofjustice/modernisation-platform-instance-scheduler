@@ -61,10 +61,23 @@ func getSecret(cfg aws.Config, secretId string) string {
 	return *result.SecretString
 }
 
+func getParameter(cfg aws.Config, parameterName string) string {
+	client := ssm.NewFromConfig(cfg)
+	input := &ssm.GetParameterInput{
+		Name: aws.String(parameterName),
+	}
+	result, err := client.GetParameter(context.TODO(), input)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return *result.Parameter.Value
+}
+
 func getNonProductionAccounts(cfg aws.Config, skipAccountNames string) map[string]string {
 	accounts := make(map[string]string)
 	// Get accounts secret
-	environments := getSecret(cfg, os.Getenv("INSTANCE_SCHEDULING_ENVIRONMENT_MANAGEMENT_SECRET_ID"))
+	environments_secret_arn := getParameter(cfg, "environment_management_arn")
+	environments := getSecret(cfg, environments_secret_arn)
 
 	var allAccounts map[string]interface{}
 	json.Unmarshal([]byte(environments), &allAccounts)
