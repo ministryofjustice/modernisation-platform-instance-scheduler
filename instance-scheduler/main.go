@@ -17,8 +17,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
-	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
 )
 
@@ -62,6 +62,7 @@ func getSecret(cfg aws.Config, secretId string) string {
 	return *result.SecretString
 }
 
+// This function does not return the expected value at the moment. Will be refactored and used in the future.
 func getParameter(cfg aws.Config, parameterName string) string {
 	client := ssm.NewFromConfig(cfg)
 	input := &ssm.GetParameterInput{
@@ -77,8 +78,7 @@ func getParameter(cfg aws.Config, parameterName string) string {
 func getNonProductionAccounts(cfg aws.Config, skipAccountNames string) map[string]string {
 	accounts := make(map[string]string)
 	// Get accounts secret
-	environments_secret_arn := getParameter(cfg, "environment_management_arn")
-	environments := getSecret(cfg, environments_secret_arn)
+	environments := getSecret(cfg, os.Getenv("INSTANCE_SCHEDULING_ENVIRONMENT_MANAGEMENT_SECRET_ID"))
 
 	var allAccounts map[string]interface{}
 	json.Unmarshal([]byte(environments), &allAccounts)
@@ -268,6 +268,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	log.Printf("BEGIN: Instance scheduling v%v\n", INSTANCE_SCHEDULER_VERSION)
 	log.Printf("INSTANCE_SCHEDULING_ACTION=%v\n", action)
 	log.Printf("INSTANCE_SCHEDULING_SKIP_ACCOUNTS=%v\n", skipAccounts)
+	log.Printf("INSTANCE_SCHEDULING_ENVIRONMENT_MANAGEMENT_SECRET_ID=%v\n", os.Getenv("INSTANCE_SCHEDULING_ENVIRONMENT_MANAGEMENT_SECRET_ID"))
 
 	// Load the Shared AWS Configuration (~/.aws/config)
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("eu-west-2"))
