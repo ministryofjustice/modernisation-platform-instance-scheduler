@@ -51,7 +51,7 @@ jobs:
 #        working-directory: instance-scheduler
 #        run: go test -v
       - name: SAM Package
-        run: sam package --image-repository $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo
+        run: sam package --image-repository $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo --output-template-file packaged-template.yaml
       - name: Add the `latest` tag to the container image
         run: docker tag instanceschedulerfunction:1.0 $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:latest
       - name: Login to ECR
@@ -59,4 +59,7 @@ jobs:
       - name: Push the container image with the `latest` tag to ECR
         run: docker push $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:latest
       - name: Deploy the latest image
-        run: aws lambda update-function-code --function-name instance-scheduler-lambda-function --image-uri instance-scheduler-ecr-repo:latest
+        run: |
+          IMAGE_TAG=$(grep -w ImageUri packaged-template.yaml | cut -d: -f3)
+          echo "IMAGE_TAG=$IMAGE_TAG"
+          aws lambda update-function-code --function-name instance-scheduler-lambda-function --image-uri $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:${IMAGE_TAG}
