@@ -58,3 +58,5 @@ jobs:
         run: aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com
       - name: Push the container image with the `latest` tag to ECR
         run: docker push $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:latest
+      - name: Deploy the latest image
+        run: aws lambda update-function-code --function-name instance-scheduler-lambda-function --image-uri instance-scheduler-ecr-repo:latest
