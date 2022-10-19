@@ -22,7 +22,7 @@ import (
 	"github.com/aws/smithy-go"
 )
 
-const INSTANCE_SCHEDULER_VERSION string = "1.0"
+const INSTANCE_SCHEDULER_VERSION string = "1.1"
 
 /*
 ENV variable INSTANCE_SCHEDULING_SKIP_ACCOUNTS: A comma-separated list of account names to be skipped from instance scheduling. For example:
