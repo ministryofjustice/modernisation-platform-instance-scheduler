@@ -22,7 +22,7 @@ import (
 	"github.com/aws/smithy-go"
 )
 
-const INSTANCE_SCHEDULER_VERSION string = "1.1.3"
+const INSTANCE_SCHEDULER_VERSION string = "1.1.4"
 
 /*
 ENV variable INSTANCE_SCHEDULING_SKIP_ACCOUNTS: A comma-separated list of account names to be skipped from instance scheduling. For example:
@@ -35,6 +35,7 @@ stop = "0 20 * * *" # 20.00 UTC time or 21.00 London time
 start = "0 5 * * *" # 5.00 UTC time or 6.00 London time
 
 CLI examples:
+aws ssm get-parameter --name environment_management_arn --with-decryption --profile core-shared-services-production --region eu-west-2
 aws secretsmanager get-secret-value --secret-id environment_management --profile mod --region eu-west-2
 */
 
@@ -49,6 +50,19 @@ var (
 	ErrNon200Response = errors.New("Non 200 Response found")
 )
 
+func getParameter(cfg aws.Config, parameterName string) string {
+	client := ssm.NewFromConfig(cfg)
+	input := &ssm.GetParameterInput{
+		Name:           aws.String(parameterName),
+		WithDecryption: aws.Bool(true),
+	}
+	result, err := client.GetParameter(context.TODO(), input)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return *result.Parameter.Value
+}
+
 func getSecret(cfg aws.Config, secretId string) string {
 	client := secretsmanager.NewFromConfig(cfg)
 	input := &secretsmanager.GetSecretValueInput{
@@ -62,23 +76,12 @@ func getSecret(cfg aws.Config, secretId string) string {
 	return *result.SecretString
 }
 
-// This function does not return the expected value at the moment. Will be refactored and used in the future.
-func getParameter(cfg aws.Config, parameterName string) string {
-	client := ssm.NewFromConfig(cfg)
-	input := &ssm.GetParameterInput{
-		Name: aws.String(parameterName),
-	}
-	result, err := client.GetParameter(context.TODO(), input)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return *result.Parameter.Value
-}
-
 func getNonProductionAccounts(cfg aws.Config, skipAccountNames string) map[string]string {
 	accounts := make(map[string]string)
-	// Get accounts secret
-	environments := getSecret(cfg, os.Getenv("INSTANCE_SCHEDULING_ENVIRONMENT_MANAGEMENT_SECRET_ID"))
+	// Get the secret ID (ARN) of the environment management secret from the parameter store
+	secretId := getParameter(cfg, "environment_management_arn")
+	// Get the environment management secret that holds the account IDs
+	environments := getSecret(cfg, secretId)
 
 	var allAccounts map[string]interface{}
 	json.Unmarshal([]byte(environments), &allAccounts)
@@ -268,7 +271,6 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	log.Printf("BEGIN: Instance scheduling v%v\n", INSTANCE_SCHEDULER_VERSION)
 	log.Printf("INSTANCE_SCHEDULING_ACTION=%v\n", action)
 	log.Printf("INSTANCE_SCHEDULING_SKIP_ACCOUNTS=%v\n", skipAccounts)
-	log.Printf("INSTANCE_SCHEDULING_ENVIRONMENT_MANAGEMENT_SECRET_ID=%v\n", os.Getenv("INSTANCE_SCHEDULING_ENVIRONMENT_MANAGEMENT_SECRET_ID"))
 
 	// Load the Shared AWS Configuration (~/.aws/config)
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("eu-west-2"))
