@@ -23,7 +23,7 @@ permissions:
   contents: read # This is required for actions/checkout
 
 jobs:
-  build-test-deploy:
+  build-test-push:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -51,14 +51,19 @@ jobs:
 #        working-directory: instance-scheduler
 #        run: go test -v
       - name: SAM Package
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: sam package --image-repository $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo --output-template-file packaged-template.yaml
       - name: Add the `latest` tag to the container image
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: docker tag instanceschedulerfunction:1.0 $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:latest
       - name: Login to ECR
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com
       - name: Push the container image with the `latest` tag to ECR
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: docker push $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:latest
       - name: Deploy the latest image
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: |
           IMAGE_TAG=$(grep -w ImageUri packaged-template.yaml | cut -d: -f3)
           echo "IMAGE_TAG=$IMAGE_TAG"
