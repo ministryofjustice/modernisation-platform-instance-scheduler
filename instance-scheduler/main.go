@@ -15,14 +15,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
-	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
 )
 
-const INSTANCE_SCHEDULER_VERSION string = "1.1.4"
+const INSTANCE_SCHEDULER_VERSION string = "1.1.5"
 
 /*
 ENV variable INSTANCE_SCHEDULING_SKIP_ACCOUNTS: A comma-separated list of account names to be skipped from instance scheduling. For example:
@@ -245,24 +244,23 @@ func stopStartTestInstancesInMemberAccount(client *ec2.Client, action string) {
 }
 
 func getEc2ClientForMemberAccount(cfg aws.Config, accountName string, accountId string) *ec2.Client {
-	roleARN := fmt.Sprintf("arn:aws:iam::%v:role/MemberInfrastructureAccess", accountId)
+	roleARN := fmt.Sprintf("arn:aws:iam::%v:role/InstanceSchedulerAccess", accountId)
 	stsClient := sts.NewFromConfig(cfg)
 	provider := stscreds.NewAssumeRoleProvider(stsClient, roleARN)
 	cfg.Credentials = aws.NewCredentialsCache(provider)
 
-	iamClient := iam.NewFromConfig(cfg)
-	_, err := iamClient.ListRoles(context.TODO(), &iam.ListRolesInput{
-		PathPrefix: aws.String("/")})
-
+	ec2Client := ec2.NewFromConfig(cfg)
+	input := &ec2.DescribeInstancesInput{}
+	_, err := ec2Client.DescribeInstances(context.TODO(), input)
 	if err != nil {
 		if strings.Contains(err.Error(), "is not authorized to perform: sts:AssumeRole on resource") {
-			log.Printf("WARN: account %v (%v) is ignored because it does not have the role MemberInfrastructureAccess, therefore is not a member account\n", accountName, accountId)
+			log.Printf("WARN: account %v (%v) is ignored because it does not have the role InstanceSchedulerAccess, therefore is not a member account\n", accountName, accountId)
 			return nil
 		} else {
 			log.Fatal(err)
 		}
 	}
-	return ec2.NewFromConfig(cfg)
+	return ec2Client
 }
 
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -299,7 +297,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		log.Println("WARN: END: Instance scheduling: No member account was found!")
 	}
 	if len(nonMemberAccountNames) > 0 {
-		log.Printf("Ignored %v non-member accounts lacking MemberInfrastructureAccess role: %v\n", len(nonMemberAccountNames), nonMemberAccountNames)
+		log.Printf("Ignored %v non-member accounts lacking InstanceSchedulerAccess role: %v\n", len(nonMemberAccountNames), nonMemberAccountNames)
 	}
 
 	return events.APIGatewayProxyResponse{
