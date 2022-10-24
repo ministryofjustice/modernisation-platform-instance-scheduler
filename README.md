@@ -1,15 +1,24 @@
-# Instance Scheduler
+# Ministry of Justice Instance Scheduler
 
-## Install SAM CLI
+[![repo standards badge](https://img.shields.io/badge/dynamic/json?color=blue&style=for-the-badge&logo=github&label=MoJ%20Compliant&query=%24.result&url=https%3A%2F%2Foperations-engineering-reports.cloud-platform.service.justice.gov.uk%2Fapi%2Fv1%2Fcompliant_public_repositories%2Fmodernisation-platform-instance-scheduler)](https://operations-engineering-reports.cloud-platform.service.justice.gov.uk/public-github-repositories.html#modernisation-platform-instance-scheduler "Link to report")
+
+A Go lambda function for stopping and starting instance, rds resources and autoscaling groups.
+
+## Requirements
+
+- [AWS Vault](https://github.com/99designs/aws-vault) with a profile configured to access the core-shared-services account
+- [Docker installed](https://www.docker.com/community-edition)
+- [Golang](https://golang.org)
+- SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
+
+To install the SAM CLI on macOS:
 
 ```
 brew tap aws/tap
 brew install aws-sam-cli
 ```
 
-See also: https://aws.amazon.com/serverless/sam/
-
-## How to run, test, deploy
+## Local development
 
 Install dependencies & build the target
 
@@ -20,19 +29,19 @@ Install dependencies & build the target
 
 Validate SAM template
 
-    aws-vault exec mod -- sam validate
+    aws-vault exec core-shared-services-production -- sam validate
 
 Invoke Function
 
-    aws-vault exec mod -- sam local invoke
+    aws-vault exec core-shared-services-production -- sam local invoke
 
 Test Function in the Cloud
 
-    aws-vault exec mod -- sam sync --stack-name instance-scheduler --watch
+    aws-vault exec core-shared-services-production -- sam sync --stack-name instance-scheduler --watch
 
-Deploy on cooker-development using the local `samconfig.toml` and preventing prompts and failure when the stack is unchanged
+Deploy on sprinkler-development using the local `samconfig.toml` and preventing prompts and failure when the stack is unchanged
 
-    aws-vault exec cooker-development -- sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --region eu-west-2
+    aws-vault exec sprinkler-development -- sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --region eu-west-2
 
 Module initialisation. The following commands were used in order to generate the required `go.mod` and `go.sum` files prior to the first run of the tests.
 
@@ -41,40 +50,13 @@ Module initialisation. The following commands were used in order to generate the
     go mod tidy
     go mod download
 
-Run tests
+Run Tests
 
     cd instance-scheduler
-    aws-vault exec mod -- go test -v .
+    aws-vault exec core-shared-services-production -- go test -v .
 
 ## References
 
 1. [How the original Go SAM project was created](sam-init.md)
-
-## Ministry of Justice Template Repository
-
-[![repo standards badge](https://img.shields.io/badge/dynamic/json?color=blue&style=for-the-badge&logo=github&label=MoJ%20Compliant&query=%24.data%5B%3F%28%40.name%20%3D%3D%20%22template-repository%22%29%5D.status&url=https%3A%2F%2Foperations-engineering-reports.cloud-platform.service.justice.gov.uk%2Fgithub_repositories)](https://operations-engineering-reports.cloud-platform.service.justice.gov.uk/github_repositories#template-repository "Link to report")
-
-Use this template to [create a repository] with the default initial files for a Ministry of Justice Github repository, including:
-
-- The correct LICENSE
-- Github Action example
-- A .gitignore file
-- A CODEOWNERS file
-- A dependabot.yml file
-- The MoJ Compliant Badge (Public repositories only)
-
-Once you have created your repository, please:
-
-- Edit the copy of this README.md file to document your project.
-- Grant permission/s to the appropriate MoJ team/s with at least one team having Admin permissions.
-- Try not to add individual users to the repository, instead use a team.
-- To add an Outside Collaborator to the repository follow the guidelines on the [GitHub-collaborator repository](https://github.com/ministryofjustice/github-collaborators).
-- Ensure branch protection is set up on the main branch.
-- [Optional] Modify the CODEOWNERS file and state the team or users that can authorise PR's.
-- Modify the Dependabot file to suit the [dependency manager](https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file#package-ecosystem) you plan to use and for [automated pull requests for package updates](https://docs.github.com/en/code-security/supply-chain-security/keeping-your-dependencies-updated-automatically/enabling-and-disabling-dependabot-version-updates#enabling-dependabot-version-updates). Dependabot is enabled in the settings by default.
-- Modify the short description found on the right side of the README.md file.
-- Ensure as many of the [GitHub Standards](https://github.com/ministryofjustice/github-repository-standards) rules are maintained as possibly can.
-- Modify the MoJ Compliant Badge url using these [instructions](https://github.com/orgs/ministryofjustice/teams/operations-engineering/discussions). If the repository is internal or private then the badge can removed as it will not work.
-- For a private repo with no GitHub Advanced Security license remove the .github/workflows/dependency-review.yml file.
-
-[create a repository]: https://github.com/ministryofjustice/template-repository/generate
+2. [AWS Serverless Application Model](https://aws.amazon.com/serverless/sam/)
+3. [AWS Serverless Application Repository](https://aws.amazon.com/serverless/serverlessrepo/)

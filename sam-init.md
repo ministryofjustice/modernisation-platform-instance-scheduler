@@ -1,3 +1,4 @@
+
 ## How the original Go SAM project was created
 
 Init a Go SAM project
