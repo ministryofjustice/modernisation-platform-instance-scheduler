@@ -38,17 +38,6 @@ aws ssm get-parameter --name environment_management_arn --with-decryption --prof
 aws secretsmanager get-secret-value --secret-id environment_management --profile mod --region eu-west-2
 */
 
-var (
-	// DefaultHTTPGetAddress Default Address
-	DefaultHTTPGetAddress = "https://checkip.amazonaws.com"
-
-	// ErrNoIP No IP found in response
-	ErrNoIP = errors.New("No IP in HTTP response")
-
-	// ErrNon200Response non 200 status code in response
-	ErrNon200Response = errors.New("Non 200 Response found")
-)
-
 func getParameter(cfg aws.Config, parameterName string) string {
 	client := ssm.NewFromConfig(cfg)
 	input := &ssm.GetParameterInput{
