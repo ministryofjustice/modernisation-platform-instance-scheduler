@@ -12,9 +12,7 @@ func TestHandler(t *testing.T) {
 
 		_, err := handler(events.APIGatewayProxyRequest{})
 		if err != nil {
-			t.Error("[ERROR]:", err)
-		} else {
-			t.Log("[INFO]:", "Test has run successfully!")
+			t.Fatal("[ERROR]:", err)
 		}
 	})
 }
