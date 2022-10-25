@@ -47,9 +47,9 @@ jobs:
       - name: Download Go Modules
         working-directory: instance-scheduler
         run: go mod download
-#      - name: Run Tests
-#        working-directory: instance-scheduler
-#        run: go test -v
+      - name: Run Tests
+        working-directory: instance-scheduler
+        run: go test -v
       - name: SAM Package
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: sam package --image-repository $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo --output-template-file packaged-template.yaml
