@@ -57,6 +57,7 @@ jobs:
         working-directory: instance-scheduler
         run: go test -v
   ship-it:
+    needs: build-and-test
     runs-on: ubuntu-latest
     steps:
       - name: configure aws credentials and assume github-actions role
