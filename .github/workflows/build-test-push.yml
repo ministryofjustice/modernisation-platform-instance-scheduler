@@ -17,6 +17,7 @@ on:
 env:
   AWS_REGION: "eu-west-2"
   ACCOUNT_NUMBER: ${{ secrets.CORE_SHARED_SERVICES_ACCOUNT_ID }}
+  LAMBDA_ROLE_ARN: "arn:aws:iam::${{ env.ACCOUNT_NUMBER }}:role/InstanceSchedulerLambdaFunctionPolicy"
 
 permissions:
   id-token: write # This is required for requesting the JWT
@@ -47,12 +48,10 @@ jobs:
       - name: Download Go Modules
         working-directory: instance-scheduler
         run: go mod download
-      - name: configure aws credentials and assume InstanceSchedulerLambdaFunctionPolicy role
+      - name: assume InstanceSchedulerLambdaFunctionPolicy role
         uses: aws-actions/configure-aws-credentials@v1
-        with:
-          role-to-assume: "arn:aws:iam::${{ env.ACCOUNT_NUMBER }}:role/InstanceSchedulerLambdaFunctionPolicy"
-          role-session-name: githubactionsrolesession
-          aws-region: ${{ env.AWS_REGION }}
+        run: |
+          aws sts assume-role --role-arn $LAMBDA_ROLE_ARN --role-session-name githubactionsgotestrolesession
       - name: Run Tests
         working-directory: instance-scheduler
         run: go test -v
