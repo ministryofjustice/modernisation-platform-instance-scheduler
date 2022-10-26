@@ -2,7 +2,7 @@
 
 [![repo standards badge](https://img.shields.io/badge/dynamic/json?color=blue&style=for-the-badge&logo=github&label=MoJ%20Compliant&query=%24.result&url=https%3A%2F%2Foperations-engineering-reports.cloud-platform.service.justice.gov.uk%2Fapi%2Fv1%2Fcompliant_public_repositories%2Fmodernisation-platform-instance-scheduler)](https://operations-engineering-reports.cloud-platform.service.justice.gov.uk/public-github-repositories.html#modernisation-platform-instance-scheduler "Link to report")
 
-A Go lambda function for stopping and starting instance, rds resources and autoscaling groups.
+A Go lambda function for stopping and starting instance, rds resources and autoscaling groups. The function is used by the [Ministry of Justice Modernisation Platform](https://github.com/ministryofjustice/modernisation-platform) and can be re-used in any environment with minimal changes.
 
 ## Requirements
 
@@ -39,9 +39,10 @@ Test Function in the Cloud
 
     aws-vault exec core-shared-services-production -- sam sync --stack-name instance-scheduler --watch
 
-Deploy on sprinkler-development using the local `samconfig.toml` and preventing prompts and failure when the stack is unchanged
+Deploy on sprinkler-development using the local `samconfig.toml` and preventing prompts and failure when the stack is unchanged. The following command requires the `instance-scheduler-ecr-repo` ECR repository to be present in order to succeed.
 
-    aws-vault exec sprinkler-development -- sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --region eu-west-2
+    ACCOUNT_ID=$(aws-vault exec sprinkler-development -- aws sts get-caller-identity --query Account --output text)
+    aws-vault exec sprinkler-development -- sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --region eu-west-2 --image-repository $ACCOUNT_ID.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo
 
 Module initialisation. The following commands were used in order to generate the required `go.mod` and `go.sum` files prior to the first run of the tests.
 
