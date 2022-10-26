@@ -49,7 +49,6 @@ jobs:
         working-directory: instance-scheduler
         run: go mod download
       - name: assume InstanceSchedulerLambdaFunctionPolicy role
-        uses: aws-actions/configure-aws-credentials@v1
         run: |
           aws sts assume-role --role-arn $LAMBDA_ROLE_ARN --role-session-name githubactionsgotestrolesession
       - name: Run Tests
