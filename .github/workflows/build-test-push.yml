@@ -47,10 +47,10 @@ jobs:
       - name: Download Go Modules
         working-directory: instance-scheduler
         run: go mod download
-      - name: configure aws credentials and assume InstanceSchedulerAccess role
+      - name: configure aws credentials and assume InstanceSchedulerLambdaFunctionPolicy role
           uses: aws-actions/configure-aws-credentials@v1
           with:
-            role-to-assume: "arn:aws:iam::${{ env.ACCOUNT_NUMBER }}:role/InstanceSchedulerAccess"
+            role-to-assume: "arn:aws:iam::${{ env.ACCOUNT_NUMBER }}:role/InstanceSchedulerLambdaFunctionPolicy"
             role-session-name: githubactionsrolesession
             aws-region: ${{ env.AWS_REGION }}
       - name: Run Tests
