@@ -23,12 +23,12 @@ permissions:
   contents: read # This is required for actions/checkout
 
 jobs:
-  build-test-push:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3.1.0
-      - name: configure aws credentials
+      - name: configure aws credentials and assume github-actions role
         uses: aws-actions/configure-aws-credentials@v1
         with:
           role-to-assume: "arn:aws:iam::${{ env.ACCOUNT_NUMBER }}:role/github-actions"
@@ -47,9 +47,24 @@ jobs:
       - name: Download Go Modules
         working-directory: instance-scheduler
         run: go mod download
+      - name: configure aws credentials and assume InstanceSchedulerAccess role
+          uses: aws-actions/configure-aws-credentials@v1
+          with:
+            role-to-assume: "arn:aws:iam::${{ env.ACCOUNT_NUMBER }}:role/InstanceSchedulerAccess"
+            role-session-name: githubactionsrolesession
+            aws-region: ${{ env.AWS_REGION }}
       - name: Run Tests
         working-directory: instance-scheduler
         run: go test -v
+  ship-it:
+    runs-on: ubuntu-latest
+    steps:
+      - name: configure aws credentials and assume github-actions role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: "arn:aws:iam::${{ env.ACCOUNT_NUMBER }}:role/github-actions"
+          role-session-name: githubactionsrolesession
+          aws-region: ${{ env.AWS_REGION }}
       - name: SAM Package
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: sam package --image-repository $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo --output-template-file packaged-template.yaml
