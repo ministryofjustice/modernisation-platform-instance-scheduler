@@ -17,7 +17,7 @@ on:
 env:
   AWS_REGION: "eu-west-2"
   ACCOUNT_NUMBER: ${{ secrets.CORE_SHARED_SERVICES_ACCOUNT_ID }}
-  LAMBDA_ROLE_ARN: "arn:aws:iam::${{ env.ACCOUNT_NUMBER }}:role/InstanceSchedulerLambdaFunctionPolicy"
+  LAMBDA_ROLE_ARN: "arn:aws:iam::${{ secrets.CORE_SHARED_SERVICES_ACCOUNT_ID }}:role/InstanceSchedulerLambdaFunctionPolicy"
 
 permissions:
   id-token: write # This is required for requesting the JWT
