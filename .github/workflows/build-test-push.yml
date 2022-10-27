@@ -51,9 +51,9 @@ jobs:
       - name: Assume InstanceSchedulerLambdaFunctionPolicy role
         run: |
           aws sts assume-role --role-arn $LAMBDA_ROLE_ARN --role-session-name githubactionsgotestrolesession > creds
-          echo "AWS_ACCESS_KEY_ID=$(echo $(cat creds) | sed -n 's/.*"AccessKeyId": "\([^"]*\)".*/\1/p')" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo $(cat creds) | sed -n 's/.*"SecretAccessKey": "\([^"]*\)".*/\1/p')" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$(echo $(cat creds) | sed -n 's/.*"SessionToken": "\([^"]*\)".*/\1/p')" >> $GITHUB_ENV
+          echo "AWS_ACCESS_KEY_ID=::add-mask::$(echo $(cat creds) | sed -n 's/.*"AccessKeyId": "\([^"]*\)".*/\1/p')" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=::add-mask::$(echo $(cat creds) | sed -n 's/.*"SecretAccessKey": "\([^"]*\)".*/\1/p')" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=::add-mask::$(echo $(cat creds) | sed -n 's/.*"SessionToken": "\([^"]*\)".*/\1/p')" >> $GITHUB_ENV
           aws sts get-caller-identity
       - name: Run Tests
         working-directory: instance-scheduler
