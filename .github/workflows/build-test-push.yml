@@ -29,7 +29,7 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3.1.0
-      - name: configure aws credentials and assume github-actions role
+      - name: Configure aws credentials and assume github-actions role
         uses: aws-actions/configure-aws-credentials@v1
         with:
           role-to-assume: "arn:aws:iam::${{ env.ACCOUNT_NUMBER }}:role/github-actions"
@@ -48,12 +48,12 @@ jobs:
       - name: Download Go Modules
         working-directory: instance-scheduler
         run: go mod download
-      - name: assume InstanceSchedulerLambdaFunctionPolicy role
+      - name: Assume InstanceSchedulerLambdaFunctionPolicy role
         run: |
           aws sts assume-role --role-arn $LAMBDA_ROLE_ARN --role-session-name githubactionsgotestrolesession > creds
-          $(echo "export AWS_ACCESS_KEY_ID=$(echo $(cat creds) | sed -n 's/.*"AccessKeyId": "\([^"]*\)".*/\1/p')")
-          $(echo "export AWS_SECRET_ACCESS_KEY=$(echo $(cat creds) | sed -n 's/.*"SecretAccessKey": "\([^"]*\)".*/\1/p')")
-          $(echo "export AWS_SESSION_TOKEN=$(echo $(cat creds) | sed -n 's/.*"SessionToken": "\([^"]*\)".*/\1/p')")
+          echo "AWS_ACCESS_KEY_ID=$(echo $(cat creds) | sed -n 's/.*"AccessKeyId": "\([^"]*\)".*/\1/p')" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=$(echo $(cat creds) | sed -n 's/.*"SecretAccessKey": "\([^"]*\)".*/\1/p')" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=$(echo $(cat creds) | sed -n 's/.*"SessionToken": "\([^"]*\)".*/\1/p')" >> $GITHUB_ENV
           aws sts get-caller-identity
       - name: Run Tests
         working-directory: instance-scheduler
@@ -64,7 +64,7 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     steps:
-      - name: configure aws credentials and assume github-actions role
+      - name: Configure aws credentials and assume github-actions role
         uses: aws-actions/configure-aws-credentials@v1
         with:
           role-to-assume: "arn:aws:iam::${{ env.ACCOUNT_NUMBER }}:role/github-actions"
