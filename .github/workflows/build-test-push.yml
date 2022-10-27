@@ -50,10 +50,16 @@ jobs:
         run: go mod download
       - name: assume InstanceSchedulerLambdaFunctionPolicy role
         run: |
-          aws sts assume-role --role-arn $LAMBDA_ROLE_ARN --role-session-name githubactionsgotestrolesession
+          aws sts assume-role --role-arn $LAMBDA_ROLE_ARN --role-session-name githubactionsgotestrolesession > creds
+          $(echo "export AWS_ACCESS_KEY_ID=$(echo $(cat creds) | sed -n 's/.*"AccessKeyId": "\([^"]*\)".*/\1/p')")
+          $(echo "export AWS_SECRET_ACCESS_KEY=$(echo $(cat creds) | sed -n 's/.*"SecretAccessKey": "\([^"]*\)".*/\1/p')")
+          $(echo "export AWS_SESSION_TOKEN=$(echo $(cat creds) | sed -n 's/.*"SessionToken": "\([^"]*\)".*/\1/p')")
+          aws sts get-caller-identity
       - name: Run Tests
         working-directory: instance-scheduler
-        run: go test -v
+        run: |
+          aws sts get-caller-identity
+          go test -v
   push-to-ecr:
     needs: build-and-test
     runs-on: ubuntu-latest
