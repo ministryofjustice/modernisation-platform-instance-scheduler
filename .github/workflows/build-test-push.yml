@@ -69,7 +69,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - name: SAM Package
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        run: sam package --image-repository $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo --output-template-file packaged-template.yaml
+        run: sam package --image-repository $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo --output-template-file packaged-template.yml
       - name: Add the `latest` tag to the container image
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: docker tag instanceschedulerfunction:1.0 $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:latest
