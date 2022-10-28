@@ -1,18 +1,16 @@
+
 package main
 
 import (
-	"github.com/aws/aws-lambda-go/events"
-	"os"
+	"context"
 	"testing"
 )
 
 func TestHandler(t *testing.T) {
 	t.Run("Testing the lambda function", func(t *testing.T) {
-		os.Setenv("INSTANCE_SCHEDULING_ACTION", "Test")
-
-		_, err := handler(events.APIGatewayProxyRequest{})
+		_, err := handler(context.TODO(), InstanceSchedulingRequest{Action: "Test"})
 		if err != nil {
-			t.Fatal(err)
+			t.Fatal("Everything should be ok")
 		}
 	})
 }
