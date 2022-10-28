@@ -48,28 +48,9 @@ jobs:
       - name: Download Go Modules
         working-directory: instance-scheduler
         run: go mod download
-      - name: Assume InstanceSchedulerLambdaFunctionPolicy role
+      - name: Assume InstanceSchedulerLambdaFunctionPolicy role and run GO tests
         run: |
           aws sts assume-role --role-arn $LAMBDA_ROLE_ARN --role-session-name githubactionsgotestrolesession > creds
-          echo "Extracting the secrets"
-          echo "AWS_ACCESS_KEY_ID=$(echo $(cat creds) | sed -n 's/.*"AccessKeyId": "\([^"]*\)".*/\1/p')"
-          echo "AWS_SECRET_ACCESS_KEY=$(echo $(cat creds) | sed -n 's/.*"SecretAccessKey": "\([^"]*\)".*/\1/p')"
-          echo "AWS_SESSION_TOKEN=$(echo $(cat creds) | sed -n 's/.*"SessionToken": "\([^"]*\)".*/\1/p')"
-
-          echo "Masking the secrets"
-          echo "::add-mask::$AWS_ACCESS_KEY_ID"
-          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
-          echo "::add-mask::$AWS_SESSION_TOKEN"
-
-          echo "Saving the secrets in env vars"
-          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
-
-          aws sts get-caller-identity
-      - name: Run Tests
-        working-directory: instance-scheduler
-        run: |
           aws sts get-caller-identity
           go test -v
   push-to-ecr:
