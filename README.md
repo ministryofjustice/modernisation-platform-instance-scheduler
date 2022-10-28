@@ -33,7 +33,7 @@ Validate SAM template
 
 Invoke Function
 
-    aws-vault exec core-shared-services-production -- sam local invoke
+    aws-vault exec core-shared-services-production -- sam local invoke --event event.json
 
 Test Function in the Cloud
 

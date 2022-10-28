@@ -21,7 +21,7 @@ import (
 	"github.com/aws/smithy-go"
 )
 
-const INSTANCE_SCHEDULER_VERSION string = "1.1.6"
+const INSTANCE_SCHEDULER_VERSION string = "1.1.7"
 
 /*
 ENV variable INSTANCE_SCHEDULING_SKIP_ACCOUNTS: A comma-separated list of account names to be skipped from instance scheduling. For example:
@@ -37,17 +37,6 @@ CLI examples:
 aws ssm get-parameter --name environment_management_arn --with-decryption --profile core-shared-services-production --region eu-west-2
 aws secretsmanager get-secret-value --secret-id environment_management --profile mod --region eu-west-2
 */
-
-var (
-	// DefaultHTTPGetAddress Default Address
-	DefaultHTTPGetAddress = "https://checkip.amazonaws.com"
-
-	// ErrNoIP No IP found in response
-	ErrNoIP = errors.New("No IP in HTTP response")
-
-	// ErrNon200Response non 200 status code in response
-	ErrNon200Response = errors.New("Non 200 Response found")
-)
 
 func getParameter(cfg aws.Config, parameterName string) string {
 	client := ssm.NewFromConfig(cfg)
@@ -263,11 +252,14 @@ func getEc2ClientForMemberAccount(cfg aws.Config, accountName string, accountId 
 	return ec2Client
 }
 
-func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	action := os.Getenv("INSTANCE_SCHEDULING_ACTION")
-	skipAccounts := os.Getenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS")
+type InstanceSchedulingRequest struct {
+	Action string `json:"action"`
+}
+
+func handler(ctx context.Context, request InstanceSchedulingRequest) (events.APIGatewayProxyResponse, error) {
 	log.Printf("BEGIN: Instance scheduling v%v\n", INSTANCE_SCHEDULER_VERSION)
-	log.Printf("INSTANCE_SCHEDULING_ACTION=%v\n", action)
+	log.Printf("Action=%v\n", request.Action)
+	skipAccounts := os.Getenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS")
 	log.Printf("INSTANCE_SCHEDULING_SKIP_ACCOUNTS=%v\n", skipAccounts)
 
 	// Load the Shared AWS Configuration (~/.aws/config)
@@ -286,7 +278,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		} else {
 			memberAccountNames = append(memberAccountNames, accName)
 			log.Printf("BEGIN: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
-			stopStartTestInstancesInMemberAccount(ec2Client, action)
+			stopStartTestInstancesInMemberAccount(ec2Client, request.Action)
 			log.Printf("END: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
 		}
 	}
@@ -301,7 +293,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	}
 
 	return events.APIGatewayProxyResponse{
-		Body:       fmt.Sprintf("INSTANCE_SCHEDULING_ACTION=%v\n", action),
+		Body:       fmt.Sprintf("Action=%v\n", request.Action),
 		StatusCode: 200,
 	}, nil
 }
