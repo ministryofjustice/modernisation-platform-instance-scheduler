@@ -82,6 +82,6 @@ jobs:
       - name: Deploy the latest image
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: |
-          IMAGE_TAG=$(grep -w ImageUri packaged-template.yaml | cut -d: -f3)
+          IMAGE_TAG=$(grep -w ImageUri packaged-template.yml | cut -d: -f3)
           echo "IMAGE_TAG=$IMAGE_TAG"
           aws lambda update-function-code --function-name instance-scheduler-lambda-function --image-uri $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:${IMAGE_TAG}
