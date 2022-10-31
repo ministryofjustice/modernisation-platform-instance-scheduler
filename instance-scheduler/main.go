@@ -38,38 +38,47 @@ aws ssm get-parameter --name environment_management_arn --with-decryption --prof
 aws secretsmanager get-secret-value --secret-id environment_management --profile mod --region eu-west-2
 */
 
-func getParameter(cfg aws.Config, parameterName string) string {
-	client := ssm.NewFromConfig(cfg)
-	input := &ssm.GetParameterInput{
+/*
+Interface that defines the set of Amazon SSM API operations required by the getParameter function.
+ISSMGetParameter is satisfied byt the Amazon SSM client's GetParameter method.
+*/
+type ISSMGetParameter interface {
+	GetParameter(ctx context.Context, params *ssm.GetParameterInput, optFns ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
+}
+
+func getParameter(client ISSMGetParameter, parameterName string) string {
+	result, err := client.GetParameter(context.TODO(), &ssm.GetParameterInput{
 		Name:           aws.String(parameterName),
 		WithDecryption: aws.Bool(true),
-	}
-	result, err := client.GetParameter(context.TODO(), input)
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
 	return *result.Parameter.Value
 }
 
-func getSecret(cfg aws.Config, secretId string) string {
-	client := secretsmanager.NewFromConfig(cfg)
-	input := &secretsmanager.GetSecretValueInput{
+/*
+Interface that defines the set of Amazon secretsmanager API operations required by the getSecret function.
+ISecretManagerGetSecretValue is satisfied byt the Amazon secretsmanager client's GetSecretValue method.
+*/
+type ISecretManagerGetSecretValue interface {
+	GetSecretValue(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error)
+}
+
+func getSecret(client ISecretManagerGetSecretValue, secretId string) string {
+	result, err := client.GetSecretValue(context.TODO(), &secretsmanager.GetSecretValueInput{
 		SecretId:     aws.String(secretId),
 		VersionStage: aws.String("AWSCURRENT"),
-	}
-	result, err := client.GetSecretValue(context.TODO(), input)
+	})
+
 	if err != nil {
 		log.Fatal(err)
 	}
 	return *result.SecretString
 }
 
-func getNonProductionAccounts(cfg aws.Config, skipAccountNames string) map[string]string {
+func getNonProductionAccounts(secretId string, environments string, skipAccountNames string) map[string]string {
 	accounts := make(map[string]string)
-	// Get the secret ID (ARN) of the environment management secret from the parameter store
-	secretId := getParameter(cfg, "environment_management_arn")
-	// Get the environment management secret that holds the account IDs
-	environments := getSecret(cfg, secretId)
 
 	var allAccounts map[string]interface{}
 	json.Unmarshal([]byte(environments), &allAccounts)
@@ -111,6 +120,7 @@ func stopInstance(client *ec2.Client, instanceId string) {
 	}
 }
 
+// can be tested, ec2 client can be passed, but instead of using ec2.client use ec2iface
 func startInstance(client *ec2.Client, instanceId string) {
 	input := &ec2.StartInstancesInput{
 		InstanceIds: []string{
@@ -135,6 +145,7 @@ func startInstance(client *ec2.Client, instanceId string) {
 	}
 }
 
+// can be tested, ec2 client can be passed, but instead of using ec2.client use ec2iface
 func stopStartTestInstancesInMemberAccount(client *ec2.Client, action string) {
 	input := &ec2.DescribeInstancesInput{}
 
@@ -268,7 +279,15 @@ func handler(ctx context.Context, request InstanceSchedulingRequest) (events.API
 		log.Fatal(err)
 	}
 
-	accounts := getNonProductionAccounts(cfg, skipAccounts)
+	// Get the secret ID (ARN) of the environment management secret from the parameter store
+	ssmClient := ssm.NewFromConfig(cfg)
+	secretId := getParameter(ssmClient, "environment_management_arn")
+
+	// Get the environment management secret that holds the account IDs
+	secretsManagerClient := secretsmanager.NewFromConfig(cfg)
+	environments := getSecret(secretsManagerClient, secretId)
+
+	accounts := getNonProductionAccounts(secretId, environments, skipAccounts)
 	memberAccountNames := []string{}
 	nonMemberAccountNames := []string{}
 	for accName, accId := range accounts {
