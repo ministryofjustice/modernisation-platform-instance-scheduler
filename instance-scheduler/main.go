@@ -120,7 +120,6 @@ func stopInstance(client *ec2.Client, instanceId string) {
 	}
 }
 
-// can be tested, ec2 client can be passed, but instead of using ec2.client use ec2iface
 func startInstance(client *ec2.Client, instanceId string) {
 	input := &ec2.StartInstancesInput{
 		InstanceIds: []string{
@@ -145,7 +144,6 @@ func startInstance(client *ec2.Client, instanceId string) {
 	}
 }
 
-// can be tested, ec2 client can be passed, but instead of using ec2.client use ec2iface
 func stopStartTestInstancesInMemberAccount(client *ec2.Client, action string) {
 	input := &ec2.DescribeInstancesInput{}
 

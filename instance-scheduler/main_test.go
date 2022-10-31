@@ -5,25 +5,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"strconv"
 	"testing"
 )
-
-//func TestGetNonProductionAccounts(t *testing.T) {
-//	// Load the Shared AWS Configuration (~/.aws/config)
-//	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("eu-west-2"))
-//	if err != nil {
-//		log.Fatal(err)
-//	}
-//	got := getNonProductionAccounts(cfg, "oasys-development,apex-development,data-and-insights-wepi-development,xhibit-portal-development,nomis-preproduction,testing-test,oasys-preproduction,tariff-development,mlra-development,nomis-development,example-development,performance-hub-preproduction,xhibit-portal-preproduction,delius-iaps-development,performance-hub-development,ppud-development,refer-monitor-development,digital-prison-reporting-development,oasys-test,equip-development,threat-and-vulnerability-mgmt-development,nomis-test,ccms-ebs-development,maatdb-development")
-//	want := map[string]string{
-//		"something": "something",
-//	}
-//	fmt.Println(got)
-//	fmt.Println("")
-//	fmt.Println(want)
-//
-//}
 
 type mockGetParameter func(ctx context.Context, params *ssm.GetParameterInput, optFns ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
 
@@ -49,19 +34,21 @@ func TestGetParameter(t *testing.T) {
 					}
 
 					return &ssm.GetParameterOutput{
-						Parameter: aws.String("test-parameter-arn"),
-					}.Value, nil
+						Parameter: &types.Parameter{
+							Value: aws.String("test-parameter-value"),
+						},
+					}, nil
 				})
 			},
 			name: "test-parameter-name",
-			want: "test-parameter-arn",
+			want: "test-parameter-value",
 		},
 	}
 
 	for i, subtest := range tests {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			secret := getParameter(subtest.client(t), subtest.name)
-			if want, got := subtest.want, secret; want != got {
+			parameter := getParameter(subtest.client(t), subtest.name)
+			if want, got := subtest.want, parameter; want != got {
 				t.Errorf("want %v, got %v", subtest.want, got)
 			}
 		})
