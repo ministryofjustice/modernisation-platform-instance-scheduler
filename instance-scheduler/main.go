@@ -77,7 +77,7 @@ func getSecret(client ISecretManagerGetSecretValue, secretId string) string {
 	return *result.SecretString
 }
 
-func getNonProductionAccounts(secretId string, environments string, skipAccountNames string) map[string]string {
+func getNonProductionAccounts(environments string, skipAccountNames string) map[string]string {
 	accounts := make(map[string]string)
 
 	var allAccounts map[string]interface{}
@@ -285,7 +285,7 @@ func handler(ctx context.Context, request InstanceSchedulingRequest) (events.API
 	secretsManagerClient := secretsmanager.NewFromConfig(cfg)
 	environments := getSecret(secretsManagerClient, secretId)
 
-	accounts := getNonProductionAccounts(secretId, environments, skipAccounts)
+	accounts := getNonProductionAccounts(environments, skipAccounts)
 	memberAccountNames := []string{}
 	nonMemberAccountNames := []string{}
 	for accName, accId := range accounts {
