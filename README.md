@@ -59,7 +59,7 @@ Run Tests
 ## Configuration
 
 - Environment variable **INSTANCE_SCHEDULING_SKIP_ACCOUNTS**: A comma-separated list of account names to be skipped from instance scheduling. For example:
-`export INSTANCE_SCHEDULING_SKIP_ACCOUNTS="xhibit-portal-development,another-development,"`. As can be observed in this example, every account name must be suffixed with a leading comma, hence the last comma in the list.
+  `export INSTANCE_SCHEDULING_SKIP_ACCOUNTS="xhibit-portal-development,another-development,"`. As can be observed in this example, every account name must be suffixed with a leading comma, hence the last comma in the list.
 
 ## References
 
