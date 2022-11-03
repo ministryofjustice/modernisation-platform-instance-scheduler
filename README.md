@@ -56,8 +56,14 @@ Run Tests
     cd instance-scheduler
     aws-vault exec core-shared-services-production -- go test -v .
 
+## Configuration
+
+- Environment variable **INSTANCE_SCHEDULING_SKIP_ACCOUNTS**: A comma-separated list of account names to be skipped from instance scheduling. For example:
+`export INSTANCE_SCHEDULING_SKIP_ACCOUNTS="xhibit-portal-development,another-development,"`. As can be observed in this example, every account name must be suffixed with a leading comma, hence the last comma in the list.
+
 ## References
 
-1. [How the original Go SAM project was created](sam-init.md)
-2. [AWS Serverless Application Model](https://aws.amazon.com/serverless/sam/)
-3. [AWS Serverless Application Repository](https://aws.amazon.com/serverless/serverlessrepo/)
+1. [User Guide](https://user-guide.modernisation-platform.service.justice.gov.uk/concepts/environments/instance-scheduling.html)
+2. [How the original Go SAM project was created](sam-init.md)
+3. [AWS Serverless Application Model](https://aws.amazon.com/serverless/sam/)
+4. [AWS Serverless Application Repository](https://aws.amazon.com/serverless/serverlessrepo/)
