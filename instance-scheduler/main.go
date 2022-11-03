@@ -24,15 +24,6 @@ import (
 const INSTANCE_SCHEDULER_VERSION string = "1.1.7"
 
 /*
-ENV variable INSTANCE_SCHEDULING_SKIP_ACCOUNTS: A comma-separated list of account names to be skipped from instance scheduling. For example:
-"xhibit-portal-development,another-development,".
-As can be observed in the example above, every account name needs a leading comma, hence the last comma in the list.
-
-Use the same scheduling as for bastion instances:
-
-stop = "0 20 * * *" # 20.00 UTC time or 21.00 London time
-start = "0 5 * * *" # 5.00 UTC time or 6.00 London time
-
 CLI examples:
 aws ssm get-parameter --name environment_management_arn --with-decryption --profile core-shared-services-production --region eu-west-2
 aws secretsmanager get-secret-value --secret-id environment_management --profile mod --region eu-west-2
