@@ -8,8 +8,12 @@ Description: >
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    # 1 hour = 3600 seconds
-    Timeout: 3600
+    # This timeout configuration only takes effect when running the lambda locally through SAM
+    # (sam local invoke --event event.json). We deploy the lambda through Terraform aws_lambda_function resource,
+    # in the main repository (modernisation-platform). Therefore, to configure timeout for the deployed lambda, refer
+    # to the relevant timeout property in Terraform.
+    # 600 seconds = 10 minutes
+    Timeout: 600
     Tracing: Active
   Api:
     TracingEnabled: True
