@@ -6,6 +6,10 @@ on:
     paths:
       - 'instance-scheduler/**'
       - '.github/workflows/build-test-push.yml'
+      - '**.yaml'
+      - '**.yml'
+      - '**.json'
+      - 'Makefile'
   pull_request:
     branches:
       - main
@@ -13,6 +17,10 @@ on:
     paths:
       - 'instance-scheduler/**'
       - '.github/workflows/build-test-push.yml'
+      - '**.yaml'
+      - '**.yml'
+      - '**.json'
+      - 'Makefile'
   workflow_dispatch:
 env:
   AWS_REGION: "eu-west-2"
