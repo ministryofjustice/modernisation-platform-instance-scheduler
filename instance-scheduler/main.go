@@ -256,6 +256,12 @@ type InstanceSchedulingRequest struct {
 	Action string `json:"action"`
 }
 
+type InstanceSchedulingResponse struct {
+	Action                string   `json:"action"`
+	MemberAccountNames    []string `json:"member_account_names"`
+	NonMemberAccountNames []string `json:"non_member_account_names"`
+}
+
 func handler(ctx context.Context, request InstanceSchedulingRequest) (events.APIGatewayProxyResponse, error) {
 	log.Printf("BEGIN: Instance scheduling v%v\n", INSTANCE_SCHEDULER_VERSION)
 	log.Printf("Action=%v\n", request.Action)
@@ -300,8 +306,14 @@ func handler(ctx context.Context, request InstanceSchedulingRequest) (events.API
 		log.Printf("Ignored %v non-member accounts lacking InstanceSchedulerAccess role: %v\n", len(nonMemberAccountNames), nonMemberAccountNames)
 	}
 
+	body := &InstanceSchedulingResponse{
+		Action:                request.Action,
+		MemberAccountNames:    memberAccountNames,
+		NonMemberAccountNames: nonMemberAccountNames,
+	}
+	bodyJson, _ := json.Marshal(body)
 	return events.APIGatewayProxyResponse{
-		Body:       fmt.Sprintf("Action=%v\n", request.Action),
+		Body:       string(bodyJson),
 		StatusCode: 200,
 	}, nil
 }
