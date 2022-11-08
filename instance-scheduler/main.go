@@ -21,7 +21,7 @@ import (
 	"github.com/aws/smithy-go"
 )
 
-const INSTANCE_SCHEDULER_VERSION string = "1.1.8"
+const INSTANCE_SCHEDULER_VERSION string = "1.1.9"
 
 /*
 CLI examples:
