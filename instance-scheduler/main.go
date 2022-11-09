@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/aws/smithy-go"
 	"log"
 	"os"
 	"strings"
@@ -18,7 +19,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/aws/smithy-go"
 )
 
 const INSTANCE_SCHEDULER_VERSION string = "1.1.8"
@@ -70,10 +70,13 @@ func getSecret(client ISecretManagerGetSecretValue, secretId string) string {
 
 func getNonProductionAccounts(environments string, skipAccountNames string) map[string]string {
 	accounts := make(map[string]string)
+	fmt.Println("environments: ", environments)
+	fmt.Println("skipAccountNames: ", skipAccountNames)
 
 	var allAccounts map[string]interface{}
 	json.Unmarshal([]byte(environments), &allAccounts)
 
+	fmt.Println("allAccounts: ", allAccounts)
 	for _, record := range allAccounts {
 		if rec, ok := record.(map[string]interface{}); ok {
 			for key, val := range rec {
@@ -84,6 +87,7 @@ func getNonProductionAccounts(environments string, skipAccountNames string) map[
 			}
 		}
 	}
+	fmt.Println("accounts: ", accounts)
 	return accounts
 }
 

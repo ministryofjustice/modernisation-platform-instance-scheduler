@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
+	"reflect"
 	"strconv"
 	"testing"
 )
@@ -92,6 +93,73 @@ func TestGetSecret(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			secret := getSecret(subtest.client(t), subtest.secretId)
 			if want, got := subtest.want, secret; want != got {
+				t.Errorf("want %v, got %v", subtest.want, got)
+			}
+		})
+	}
+}
+
+func TestGetNonProductionAccounts(t *testing.T) {
+	tests := []struct {
+		testTitle    string
+		environments string
+		skipAccounts string
+		want         map[string]string
+	}{
+		{
+			testTitle:    "testing removal of production accounts and accounts to be skipped",
+			environments: "{\"account_ids\":{\"test-account-development\":\"123456789098\",\"test-account-preproduction\":\"983456789012\",\"test-account-test\":\"883115264813\",\"test-account-production\":\"45400687236096\"}}",
+			skipAccounts: "test-account-test",
+			want:         map[string]string{"test-account-development": "123456789098", "test-account-preproduction": "983456789012"},
+		},
+		{
+			testTitle:    "testing duplicate accounts in skipAccounts",
+			environments: "{\"account_ids\":{\"test-account-development\":\"123456789098\",\"test-account-preproduction\":\"983456789012\",\"test-account-test\":\"883115264813\",\"test-account-production\":\"45400687236096\"}}",
+			skipAccounts: "test-account-test, test-account-test",
+			want:         map[string]string{"test-account-development": "123456789098", "test-account-preproduction": "983456789012"},
+		},
+		{
+			testTitle:    "testing empty skipAccounts",
+			environments: "{\"account_ids\":{\"test-account-development\":\"123456789098\",\"test-account-preproduction\":\"983456789012\",\"test-account-test\":\"883115264813\",\"test-account-production\":\"45400687236096\"}}",
+			skipAccounts: "",
+			want:         map[string]string{"test-account-development": "123456789098", "test-account-preproduction": "983456789012", "test-account-test": "883115264813"},
+		},
+		{
+			testTitle:    "testing empty environments and empty skipAccounts",
+			environments: "{\"account_ids\":{}}",
+			skipAccounts: "",
+			want:         map[string]string{},
+		},
+		{
+			testTitle:    "testing empty environments and non empty skipAccounts",
+			environments: "{\"account_ids\":{}}",
+			skipAccounts: "test-account-preproduction",
+			want:         map[string]string{},
+		},
+		{
+			testTitle:    "testing skipAccounts being of length 1",
+			environments: "{\"account_ids\":{\"test-account-development\":\"123456789098\",\"test-account-preproduction\":\"983456789012\",\"test-account-production\":\"45400687236096\"}}",
+			skipAccounts: "t",
+			want:         map[string]string{"test-account-development": "123456789098", "test-account-preproduction": "983456789012"},
+		},
+		{
+			testTitle:    "testing invalid skipAccounts",
+			environments: "{\"account_ids\":{\"test-account-development\":\"123456789098\",\"test-account-preproduction\":\"983456789012\",\"test-account-production\":\"45400687236096\"}}",
+			skipAccounts: "tdsh&*tew-ljijle32^@srw",
+			want:         map[string]string{"test-account-development": "123456789098", "test-account-preproduction": "983456789012"},
+		},
+		{
+			testTitle:    "testing account number in skipAccounts",
+			environments: "{\"account_ids\":{\"test-account-development\":\"123456789098\",\"test-account-preproduction\":\"983456789012\",\"test-account-production\":\"45400687236096\"}}",
+			skipAccounts: "123456789098",
+			want:         map[string]string{"test-account-development": "123456789098", "test-account-preproduction": "983456789012"},
+		},
+	}
+
+	for _, subtest := range tests {
+		t.Run(subtest.testTitle, func(t *testing.T) {
+			got := getNonProductionAccounts(subtest.environments, subtest.skipAccounts)
+			if !reflect.DeepEqual(subtest.want, got) {
 				t.Errorf("want %v, got %v", subtest.want, got)
 			}
 		})
