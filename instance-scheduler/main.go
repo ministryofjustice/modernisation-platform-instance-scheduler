@@ -21,7 +21,7 @@ import (
 	"github.com/aws/smithy-go"
 )
 
-const INSTANCE_SCHEDULER_VERSION string = "1.1.9"
+const INSTANCE_SCHEDULER_VERSION string = "1.1.10"
 
 /*
 CLI examples:
@@ -135,13 +135,20 @@ func startInstance(client *ec2.Client, instanceId string) {
 	}
 }
 
-func stopStartTestInstancesInMemberAccount(client *ec2.Client, action string) {
+type InstanceCount struct {
+	actedUpon         int
+	skipped           int
+	skippedAutoScaled int
+}
+
+func stopStartTestInstancesInMemberAccount(client *ec2.Client, action string) *InstanceCount {
+	count := &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
 	input := &ec2.DescribeInstancesInput{}
 
 	result, err := client.DescribeInstances(context.TODO(), input)
 	if err != nil {
 		log.Print("ERROR: Could not retrieve information about Amazon EC2 instances in member account:\n", err)
-		return
+		return count
 	}
 
 	instancesActedUpon := []string{}
@@ -221,15 +228,19 @@ func stopStartTestInstancesInMemberAccount(client *ec2.Client, action string) {
 	}
 	if len(instancesActedUpon) > 0 {
 		log.Printf("%v %v instances: %v\n", acted, len(instancesActedUpon), instancesActedUpon)
+		count.actedUpon = len(instancesActedUpon)
 	} else {
 		log.Printf("WARN: No instances found to %v!\n", action)
 	}
 	if len(skippedInstances) > 0 {
 		log.Printf("Skipped %v instances due to instance-scheduling tag: %v\n", len(skippedInstances), skippedInstances)
+		count.skipped = len(skippedInstances)
 	}
 	if len(skippedAutoScaledInstances) > 0 {
 		log.Printf("Skipped %v instances due to aws:autoscaling:groupName tag: %v\n", len(skippedAutoScaledInstances), skippedAutoScaledInstances)
+		count.skippedAutoScaled = len(skippedAutoScaledInstances)
 	}
+	return count
 }
 
 func getEc2ClientForMemberAccount(cfg aws.Config, accountName string, accountId string) *ec2.Client {
@@ -260,6 +271,9 @@ type InstanceSchedulingResponse struct {
 	Action                string   `json:"action"`
 	MemberAccountNames    []string `json:"member_account_names"`
 	NonMemberAccountNames []string `json:"non_member_account_names"`
+	ActedUpon             int      `json:"acted_upon"`
+	Skipped               int      `json:"skipped"`
+	SkippedAutoScaled     int      `json:"skipped_auto_scaled"`
 }
 
 func handler(ctx context.Context, request InstanceSchedulingRequest) (events.APIGatewayProxyResponse, error) {
@@ -285,6 +299,7 @@ func handler(ctx context.Context, request InstanceSchedulingRequest) (events.API
 	accounts := getNonProductionAccounts(environments, skipAccounts)
 	memberAccountNames := []string{}
 	nonMemberAccountNames := []string{}
+	totalCount := &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
 	for accName, accId := range accounts {
 		ec2Client := getEc2ClientForMemberAccount(cfg, accName, accId)
 		if ec2Client == nil {
@@ -292,7 +307,10 @@ func handler(ctx context.Context, request InstanceSchedulingRequest) (events.API
 		} else {
 			memberAccountNames = append(memberAccountNames, accName)
 			log.Printf("BEGIN: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
-			stopStartTestInstancesInMemberAccount(ec2Client, request.Action)
+			count := stopStartTestInstancesInMemberAccount(ec2Client, request.Action)
+			totalCount.actedUpon += count.actedUpon
+			totalCount.skipped += count.skipped
+			totalCount.skippedAutoScaled += count.skippedAutoScaled
 			log.Printf("END: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
 		}
 	}
@@ -310,6 +328,9 @@ func handler(ctx context.Context, request InstanceSchedulingRequest) (events.API
 		Action:                request.Action,
 		MemberAccountNames:    memberAccountNames,
 		NonMemberAccountNames: nonMemberAccountNames,
+		ActedUpon:             totalCount.actedUpon,
+		Skipped:               totalCount.skipped,
+		SkippedAutoScaled:     totalCount.skippedAutoScaled,
 	}
 	bodyJson, _ := json.Marshal(body)
 	return events.APIGatewayProxyResponse{
