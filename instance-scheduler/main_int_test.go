@@ -30,7 +30,7 @@ func TestHandler(t *testing.T) {
 				strings.HasSuffix(accountName, "-test") ||
 				strings.HasSuffix(accountName, "-preproduction"), fmt.Sprintf("Unexpected suffix in member account %v", accountName))
 		}
-		assert.NotEmpty(t, res.NonMemberAccountNames, "No member account was found")
+		assert.NotEmpty(t, res.NonMemberAccountNames, "No non-member account was found")
 		for _, accountName := range res.NonMemberAccountNames {
 			assert.False(t, strings.HasSuffix(accountName, "-production"), fmt.Sprintf("Production account %v was found in the list of non-member accounts. Production accounts should be skipped.", accountName))
 			if !strings.HasPrefix(accountName, "core-vpc-") {
