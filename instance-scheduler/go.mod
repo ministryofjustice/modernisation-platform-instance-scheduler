@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.32.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.17.1
 	github.com/aws/smithy-go v1.13.4
-	github.com/stretchr/testify v1.7.2
+	github.com/stretchr/testify v1.8.1
 )
 
 replace gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
