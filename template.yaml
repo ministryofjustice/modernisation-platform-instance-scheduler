@@ -35,7 +35,7 @@ Resources:
             Method: GET
       Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
         Variables:
-          INSTANCE_SCHEDULING_SKIP_ACCOUNTS: nomis-preproduction,
+          INSTANCE_SCHEDULING_SKIP_ACCOUNTS: nomis-preproduction,mi-platform-development,analytical-platform-data-development,
     Metadata:
       Dockerfile: Dockerfile
       DockerContext: ./instance-scheduler
