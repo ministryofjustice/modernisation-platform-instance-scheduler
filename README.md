@@ -67,3 +67,4 @@ Run Tests
 2. [How the original Go SAM project was created](sam-init.md)
 3. [AWS Serverless Application Model](https://aws.amazon.com/serverless/sam/)
 4. [AWS Serverless Application Repository](https://aws.amazon.com/serverless/serverlessrepo/)
+5. [Terraform module for deployment of the lambda](https://github.com/ministryofjustice/modernisation-platform-terraform-lambda-function)
