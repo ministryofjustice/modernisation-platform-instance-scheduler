@@ -39,11 +39,12 @@ func TestHandler(t *testing.T) {
 				assert.False(t, strings.HasSuffix(accountName, "-preproduction"), fmt.Sprintf("Non-member account %v was found with suffix '-preproduction'. Accounts with such suffix are member accounts.", accountName))
 			}
 		}
-		assert.Greater(t, res.ActedUpon, 20, "Number of instances acted upon seems too low")
-		assert.Less(t, res.ActedUpon, 100, "Number of instances acted upon seems too high")
-		assert.Greater(t, res.Skipped, 0, "Number of skipped instances seems too low")
-		assert.Less(t, res.Skipped, 50, "Number of skipped instances seems too high")
-		assert.Greater(t, res.SkippedAutoScaled, 20, "Number of skipped instances that belong to an Auto Scaling group seems too low")
-		assert.Less(t, res.SkippedAutoScaled, 100, "Number of skipped instances that belong to an Auto Scaling group seems too high")
+		addMsg := "Please manually check the Instance Scheduler logs and verify this is reasonable. If it is reasonable, modify and adjust this test accordingly."
+		assert.Greater(t, res.ActedUpon, 20, fmt.Sprintf("Number of instances acted upon seems too low. %v", addMsg))
+		assert.Less(t, res.ActedUpon, 100, fmt.Sprintf("Number of instances acted upon seems too high. %v", addMsg))
+		assert.Greater(t, res.Skipped, 0, fmt.Sprintf("Number of skipped instances seems too low. %v", addMsg))
+		assert.Less(t, res.Skipped, 50, fmt.Sprintf("Number of skipped instances seems too high. %v", addMsg))
+		assert.Greater(t, res.SkippedAutoScaled, 20, fmt.Sprintf("Number of skipped instances that belong to an Auto Scaling group seems too low. %v", addMsg))
+		assert.Less(t, res.SkippedAutoScaled, 100, fmt.Sprintf("Number of skipped instances that belong to an Auto Scaling group seems too high. %v", addMsg))
 	})
 }
