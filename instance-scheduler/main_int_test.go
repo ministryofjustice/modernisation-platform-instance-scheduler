@@ -12,8 +12,8 @@ import (
 
 func TestHandler(t *testing.T) {
 	t.Run("Test request", func(t *testing.T) {
-		// Accounts mi-platform-development and analytical-platform-data-development cause the main_int_test.go to fail because they appear
-		// to lack the InstanceSchedulerAccess role. For now, I have excluded them from the test via the env variable INSTANCE_SCHEDULING_SKIP_ACCOUNTS
+		// Accounts mi-platform-development and analytical-platform-data-development cause the main_int_test.go to fail because they are non-member accounts
+		// lacking the InstanceSchedulerAccess role, but they have the '-development' suffix typically present in member accounts.
 		os.Setenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS", "mi-platform-development,analytical-platform-data-development,")
 
 		result, err := handler(context.TODO(), InstanceSchedulingRequest{Action: "Test"})
