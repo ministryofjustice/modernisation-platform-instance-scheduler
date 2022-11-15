@@ -21,7 +21,7 @@ import (
 	"github.com/aws/smithy-go"
 )
 
-const INSTANCE_SCHEDULER_VERSION string = "1.1.10"
+const INSTANCE_SCHEDULER_VERSION string = "1.2.1"
 
 /*
 CLI examples:
@@ -29,6 +29,7 @@ aws ssm get-parameter --name environment_management_arn --with-decryption --prof
 aws secretsmanager get-secret-value --secret-id environment_management --profile mod --region eu-west-2
 */
 
+// ISSMGetParameter
 /*
 Interface that defines the set of Amazon SSM API operations required by the getParameter function.
 ISSMGetParameter is satisfied byt the Amazon SSM client's GetParameter method.
@@ -48,9 +49,10 @@ func getParameter(client ISSMGetParameter, parameterName string) string {
 	return *result.Parameter.Value
 }
 
+// ISecretManagerGetSecretValue
 /*
 Interface that defines the set of Amazon secretsmanager API operations required by the getSecret function.
-ISecretManagerGetSecretValue is satisfied byt the Amazon secretsmanager client's GetSecretValue method.
+ISecretManagerGetSecretValue is satisfied by the Amazon secretsmanager client's GetSecretValue method.
 */
 type ISecretManagerGetSecretValue interface {
 	GetSecretValue(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error)
@@ -87,7 +89,7 @@ func getNonProductionAccounts(environments string, skipAccountNames string) map[
 	return accounts
 }
 
-func stopInstance(client *ec2.Client, instanceId string) {
+func stopInstance(client IEC2InstancesAPI, instanceId string) {
 	input := &ec2.StopInstancesInput{
 		InstanceIds: []string{
 			instanceId,
@@ -111,7 +113,7 @@ func stopInstance(client *ec2.Client, instanceId string) {
 	}
 }
 
-func startInstance(client *ec2.Client, instanceId string) {
+func startInstance(client IEC2InstancesAPI, instanceId string) {
 	input := &ec2.StartInstancesInput{
 		InstanceIds: []string{
 			instanceId,
@@ -141,11 +143,22 @@ type InstanceCount struct {
 	skippedAutoScaled int
 }
 
-func stopStartTestInstancesInMemberAccount(client *ec2.Client, action string) *InstanceCount {
-	count := &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
-	input := &ec2.DescribeInstancesInput{}
+// IEC2InstancesAPI
+/*
+Interface that defines the set of Amazon EC2 API operations required by the startInstance, stopInstance and stopStartTestInstancesInMemberAccount
+functions.
+IEC2InstancesAPI is satisfied by the Amazon EC2 client's StopInstances,  StartInstances and DescribeInstances methods.
+*/
+type IEC2InstancesAPI interface {
+	StopInstances(ctx context.Context, params *ec2.StopInstancesInput, optFns ...func(*ec2.Options)) (*ec2.StopInstancesOutput, error)
+	StartInstances(ctx context.Context, params *ec2.StartInstancesInput, optFns ...func(*ec2.Options)) (*ec2.StartInstancesOutput, error)
+	DescribeInstances(ctx context.Context, params *ec2.DescribeInstancesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeInstancesOutput, error)
+}
 
-	result, err := client.DescribeInstances(context.TODO(), input)
+func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action string) *InstanceCount {
+	count := &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
+	result, err := client.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{})
+
 	if err != nil {
 		log.Print("ERROR: Could not retrieve information about Amazon EC2 instances in member account:\n", err)
 		return count
@@ -276,7 +289,7 @@ type InstanceSchedulingResponse struct {
 	SkippedAutoScaled     int      `json:"skipped_auto_scaled"`
 }
 
-func handler(ctx context.Context, request InstanceSchedulingRequest) (events.APIGatewayProxyResponse, error) {
+func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse, error) {
 	log.Printf("BEGIN: Instance scheduling v%v\n", INSTANCE_SCHEDULER_VERSION)
 	log.Printf("Action=%v\n", request.Action)
 	skipAccounts := os.Getenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS")
