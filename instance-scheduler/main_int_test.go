@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +15,7 @@ func TestHandler(t *testing.T) {
 		// lacking the InstanceSchedulerAccess role, but they have the '-development' suffix typically present in member accounts.
 		os.Setenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS", "mi-platform-development,analytical-platform-data-development,")
 
-		result, err := handler(context.TODO(), InstanceSchedulingRequest{Action: "Test"})
+		result, err := handler(InstanceSchedulingRequest{Action: "Test"})
 		if err != nil {
 			t.Fatalf("Failed to run lambda's handler: %v", err)
 		}
