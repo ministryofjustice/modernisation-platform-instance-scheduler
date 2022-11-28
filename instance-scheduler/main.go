@@ -157,6 +157,13 @@ type IEC2InstancesAPI interface {
 
 func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action string) *InstanceCount {
 	count := &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
+	switch action {
+	case "test", "start", "stop":
+		break
+	default:
+		log.Print("ERROR: Invalid Action. Must be one of 'start' 'stop' 'test'")
+		return count
+	}
 	result, err := client.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{})
 
 	if err != nil {
