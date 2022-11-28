@@ -197,36 +197,36 @@ func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action strin
 				// Valid values: default (same as absence of tag), skip-scheduling, skip-auto-stop, skip-auto-start
 				log.Print(actedUponMessage)
 				instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
-				if action == "Stop" {
+				if action == "stop" {
 					stopInstance(client, *i.InstanceId)
-				} else if action == "Start" {
+				} else if action == "start" {
 					startInstance(client, *i.InstanceId)
-				} else if action == "Test" {
+				} else if action == "test" {
 					log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
 				}
 			} else if instanceSchedulingTag == "skip-scheduling" {
 				log.Print(skippedMessage)
 				skippedInstances = append(skippedInstances, *i.InstanceId)
 			} else if instanceSchedulingTag == "skip-auto-stop" {
-				if action == "Stop" {
+				if action == "stop" {
 					log.Print(skippedMessage)
 					skippedInstances = append(skippedInstances, *i.InstanceId)
-				} else if action == "Start" {
+				} else if action == "start" {
 					log.Print(actedUponMessage)
 					instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
 					startInstance(client, *i.InstanceId)
-				} else if action == "Test" {
+				} else if action == "test" {
 					log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
 				}
 			} else if instanceSchedulingTag == "skip-auto-start" {
-				if action == "Stop" {
+				if action == "stop" {
 					log.Print(actedUponMessage)
 					instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
 					stopInstance(client, *i.InstanceId)
-				} else if action == "Start" {
+				} else if action == "start" {
 					log.Print(skippedMessage)
 					skippedInstances = append(skippedInstances, *i.InstanceId)
-				} else if action == "Test" {
+				} else if action == "test" {
 					log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
 				}
 			}
@@ -234,9 +234,9 @@ func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action strin
 	}
 
 	acted := "Started"
-	if action == "Stop" {
+	if action == "stop" {
 		acted = "Stopped"
-	} else if action == "Test" {
+	} else if action == "test" {
 		acted = "Tested"
 	}
 	if len(instancesActedUpon) > 0 {
@@ -320,7 +320,7 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 		} else {
 			memberAccountNames = append(memberAccountNames, accName)
 			log.Printf("BEGIN: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
-			count := stopStartTestInstancesInMemberAccount(ec2Client, request.Action)
+			count := stopStartTestInstancesInMemberAccount(ec2Client, strings.ToLower(request.Action))
 			totalCount.actedUpon += count.actedUpon
 			totalCount.skipped += count.skipped
 			totalCount.skippedAutoScaled += count.skippedAutoScaled
