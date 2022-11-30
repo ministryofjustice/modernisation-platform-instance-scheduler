@@ -215,7 +215,8 @@ func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action strin
 					instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
 					startInstance(client, *i.InstanceId)
 				} else if action == "test" {
-					log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
+					log.Printf("Successfully tested skipping instance with Id %v\n", *i.InstanceId)
+					skippedInstances = append(skippedInstances, *i.InstanceId)
 				}
 			} else if instanceSchedulingTag == "skip-auto-start" {
 				if action == "stop" {
@@ -226,7 +227,8 @@ func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action strin
 					log.Print(skippedMessage)
 					skippedInstances = append(skippedInstances, *i.InstanceId)
 				} else if action == "test" {
-					log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
+					log.Printf("Successfully tested skipping instance with Id %v\n", *i.InstanceId)
+					skippedInstances = append(skippedInstances, *i.InstanceId)
 				}
 			} else { // if instance-scheduling tag is missing, or the value of the tag either default, not valid or empty the instance will be actioned
 				log.Print(actedUponMessage)
