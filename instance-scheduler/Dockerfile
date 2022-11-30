@@ -6,7 +6,7 @@ COPY . .
 RUN yum install -y golang
 RUN go env -w GOPROXY=direct
 
-RUN CGO_ENABLED=0 go build \
+RUN GOPROXY=proxy.golang.org CGO_ENABLED=0 go build \
     -o /instance-scheduler .
 
 FROM public.ecr.aws/lambda/go:1

@@ -156,6 +156,7 @@ type IEC2InstancesAPI interface {
 }
 
 func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action string) *InstanceCount {
+	action = strings.ToLower(action)
 	count := &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
 	switch action {
 	case "test", "start", "stop":
@@ -196,21 +197,12 @@ func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action strin
 			skippedMessage := fmt.Sprintf("Skipped instance %v (ReservationId: %v) %v\n", *i.InstanceId, *r.ReservationId, instanceSchedulingTagDescr)
 			skippedAutoScaledMessage := fmt.Sprintf("Skipped instance %v (ReservationId: %v) with aws:autoscaling:groupName tag because it is part of an Auto Scaling group\n", *i.InstanceId, *r.ReservationId)
 
+			// Tag key: instance-scheduling
+			// Valid values: default (same as absence of tag), skip-scheduling, skip-auto-stop, skip-auto-start
+
 			if instanceIsPartOfAutoScalingGroup {
 				log.Print(skippedAutoScaledMessage)
 				skippedAutoScaledInstances = append(skippedAutoScaledInstances, *i.InstanceId)
-			} else if (instanceSchedulingTag == "") || (instanceSchedulingTag == "default") {
-				// Tag key: instance-scheduling
-				// Valid values: default (same as absence of tag), skip-scheduling, skip-auto-stop, skip-auto-start
-				log.Print(actedUponMessage)
-				instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
-				if action == "stop" {
-					stopInstance(client, *i.InstanceId)
-				} else if action == "start" {
-					startInstance(client, *i.InstanceId)
-				} else if action == "test" {
-					log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
-				}
 			} else if instanceSchedulingTag == "skip-scheduling" {
 				log.Print(skippedMessage)
 				skippedInstances = append(skippedInstances, *i.InstanceId)
@@ -236,7 +228,18 @@ func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action strin
 				} else if action == "test" {
 					log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
 				}
+			} else { // if instance-scheduling tag is missing, or the value of the tag either default, not valid or empty the instance will be actioned
+				log.Print(actedUponMessage)
+				instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
+				if action == "stop" {
+					stopInstance(client, *i.InstanceId)
+				} else if action == "start" {
+					startInstance(client, *i.InstanceId)
+				} else if action == "test" {
+					log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
+				}
 			}
+
 		}
 	}
 
@@ -327,7 +330,7 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 		} else {
 			memberAccountNames = append(memberAccountNames, accName)
 			log.Printf("BEGIN: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
-			count := stopStartTestInstancesInMemberAccount(ec2Client, strings.ToLower(request.Action))
+			count := stopStartTestInstancesInMemberAccount(ec2Client, request.Action)
 			totalCount.actedUpon += count.actedUpon
 			totalCount.skipped += count.skipped
 			totalCount.skippedAutoScaled += count.skippedAutoScaled
