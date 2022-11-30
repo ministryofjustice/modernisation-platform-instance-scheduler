@@ -2,15 +2,16 @@ package main
 
 import (
 	"context"
+	"reflect"
+	"strconv"
+	"testing"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2type "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
-	"reflect"
-	"strconv"
-	"testing"
 )
 
 type mockGetParameter func(ctx context.Context, params *ssm.GetParameterInput, optFns ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
@@ -274,7 +275,7 @@ func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
 										},
 									},
 								},
-								// instance-scheduling = skip-auto-stop, therefore skip auto stop, but not test, acted upon: 1
+								// instance-scheduling = skip-auto-stop, therefore skip auto stop, but not test, skipped: 1
 								{
 									InstanceId: aws.String("i-1265579989"),
 									Tags: []ec2type.Tag{
@@ -284,7 +285,7 @@ func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
 										},
 									},
 								},
-								// instance-scheduling = skip-auto-start, therefore skip auto start, but not test, acted upon: 1
+								// instance-scheduling = skip-auto-start, therefore skip auto start, but not test, skipped: 1
 								{
 									InstanceId: aws.String("i-9262279981"),
 									Tags: []ec2type.Tag{
@@ -300,7 +301,7 @@ func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
 				},
 			},
 			action:        "Test",
-			expectedCount: InstanceCount{6, 1, 2},
+			expectedCount: InstanceCount{4, 3, 2},
 		},
 		{
 			testTitle: "testing Stop action",
@@ -312,7 +313,7 @@ func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
 							Instances: []ec2type.Instance{
 								// aws:autoscaling:groupName is set, therefore skip scheduling, skipped auto scaled: 1
 								{
-									InstanceId: aws.String("i-6567788909"),
+									InstanceId: aws.String("i-6567788010"),
 									Tags: []ec2type.Tag{
 										{
 											Key:   aws.String("aws:autoscaling:groupName"),
@@ -322,7 +323,7 @@ func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
 								},
 								// instance-scheduling = default, therefore schedule an instance, acted upon: 1
 								{
-									InstanceId: aws.String("i-6562278909"),
+									InstanceId: aws.String("i-6562278100"),
 									Tags: []ec2type.Tag{
 										{
 											Key:   aws.String("instance-scheduling"),
@@ -337,7 +338,7 @@ func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
 							Instances: []ec2type.Instance{
 								// both instance-scheduling and aws:autoscaling:groupName tags are set, skip scheduling due to autoscaling, skipped auto scaled: 1
 								{
-									InstanceId: aws.String("i-6562788989"),
+									InstanceId: aws.String("i-6562788010"),
 									Tags: []ec2type.Tag{
 										{
 											Key:   aws.String("aws:autoscaling:groupName"),
@@ -351,11 +352,11 @@ func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
 								},
 								// no instance-scheduling and no aws:autoscaling:groupName tags, therefore schedule an instance, acted upon: 1
 								{
-									InstanceId: aws.String("i-6562279989"),
+									InstanceId: aws.String("i-6562279100"),
 								},
 								// instance-scheduling = skip-scheduling, therefore skip scheduling, skipped: 1
 								{
-									InstanceId: aws.String("i-2162279989"),
+									InstanceId: aws.String("i-2162279001"),
 									Tags: []ec2type.Tag{
 										{
 											Key:   aws.String("instance-scheduling"),
@@ -365,7 +366,7 @@ func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
 								},
 								// instance-scheduling is set to an empty string, therefore ignore the tag and auto schedule, acted upon: 1
 								{
-									InstanceId: aws.String("i-7862279989"),
+									InstanceId: aws.String("i-7862279100"),
 									Tags: []ec2type.Tag{
 										{
 											Key:   aws.String("instance-scheduling"),
@@ -375,7 +376,7 @@ func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
 								},
 								// instance-scheduling = "invalid-value", therefore ignore the tag and auto schedule, acted upon: 1
 								{
-									InstanceId: aws.String("i-7863371234"),
+									InstanceId: aws.String("i-7863371100"),
 									Tags: []ec2type.Tag{
 										{
 											Key:   aws.String("instance-scheduling"),
@@ -385,7 +386,7 @@ func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
 								},
 								// instance-scheduling = skip-auto-stop, therefore skip auto stop, skipped: 1
 								{
-									InstanceId: aws.String("i-1265579989"),
+									InstanceId: aws.String("i-1265579001"),
 									Tags: []ec2type.Tag{
 										{
 											Key:   aws.String("instance-scheduling"),
@@ -395,7 +396,7 @@ func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
 								},
 								// instance-scheduling = skip-auto-start, therefore skip auto start, but not stop, acted upon: 1
 								{
-									InstanceId: aws.String("i-9262279981"),
+									InstanceId: aws.String("i-9262279100"),
 									Tags: []ec2type.Tag{
 										{
 											Key:   aws.String("instance-scheduling"),
