@@ -46,7 +46,7 @@ jobs:
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
           go-version: '>=1.18'
-      - uses: aws-actions/setup-sam@1711cf1906fb0dcc5ade7c8c3f55dd3e81ab4101 # v2
+      - uses: aws-actions/setup-sam@8c03a28567f01bfaac9acc4433adfdfdf148ecbd # v2
       - name: SAM Validate
         run: |
           sam validate --region ${{ env.AWS_REGION }}
