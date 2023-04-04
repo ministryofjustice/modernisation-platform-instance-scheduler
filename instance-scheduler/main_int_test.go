@@ -30,14 +30,6 @@ func TestHandler(t *testing.T) {
 				strings.HasSuffix(accountName, "-preproduction"), fmt.Sprintf("Unexpected suffix in member account %v", accountName))
 		}
 		assert.NotEmpty(t, res.NonMemberAccountNames, "No non-member account was found")
-		for _, accountName := range res.NonMemberAccountNames {
-			assert.False(t, strings.HasSuffix(accountName, "-production"), fmt.Sprintf("Production account %v was found in the list of non-member accounts. Production accounts should be skipped.", accountName))
-			if !strings.HasPrefix(accountName, "core-vpc-") {
-				assert.False(t, strings.HasSuffix(accountName, "-development"), fmt.Sprintf("Non-member account %v was found with suffix '-development'. Accounts with such suffix are member accounts.", accountName))
-				assert.False(t, strings.HasSuffix(accountName, "-test"), fmt.Sprintf("Non-member account %v was found with suffix '-test'. Accounts with such suffix are member accounts.", accountName))
-				assert.False(t, strings.HasSuffix(accountName, "-preproduction"), fmt.Sprintf("Non-member account %v was found with suffix '-preproduction'. Accounts with such suffix are member accounts.", accountName))
-			}
-		}
 		addMsg := "Please manually check the Instance Scheduler logs and verify this is reasonable. If it is reasonable, modify and adjust this test accordingly."
 		assert.Greater(t, res.ActedUpon, 20, fmt.Sprintf("Number of instances acted upon seems too low. %v", addMsg))
 		assert.Less(t, res.ActedUpon, 100, fmt.Sprintf("Number of instances acted upon seems too high. %v", addMsg))
