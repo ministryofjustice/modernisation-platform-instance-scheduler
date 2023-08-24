@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -113,6 +114,34 @@ func stopInstance(client IEC2InstancesAPI, instanceId string) {
 	}
 }
 
+func stopRDSInstance(client IRDSInstancesAPI, instanceID string) {
+	input := &rds.StopDBInstanceInput{
+		DBInstanceIdentifier: aws.String(instanceID),
+	}
+
+	_, err := client.StopDBInstance(context.TODO(), input)
+
+	if err == nil {
+		log.Printf("Successfully initiated shutdown for RDS instance with ID %v\n", instanceID)
+	} else {
+		log.Printf("ERROR: Could not initiate shutdown for RDS instance: %v\n", err)
+	}
+}
+
+func startRDSInstance(client IRDSInstancesAPI, instanceID string) {
+	input := &rds.StartDBInstanceInput{
+		DBInstanceIdentifier: aws.String(instanceID),
+	}
+
+	_, err := client.StartDBInstance(context.TODO(), input)
+
+	if err == nil {
+		log.Printf("Successfully initiated start for RDS instance with ID %v\n", instanceID)
+	} else {
+		log.Printf("ERROR: Could not initiate start for RDS instance: %v\n", err)
+	}
+}
+
 func startInstance(client IEC2InstancesAPI, instanceId string) {
 	input := &ec2.StartInstancesInput{
 		InstanceIds: []string{
@@ -155,7 +184,20 @@ type IEC2InstancesAPI interface {
 	DescribeInstances(ctx context.Context, params *ec2.DescribeInstancesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeInstancesOutput, error)
 }
 
-func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action string) *InstanceCount {
+// IRDSInstancesAPI
+/*
+Interface that defines the set of Amazon RDS API operations required by the startInstance, stopInstance and stopStartTestInstancesInMemberAccount
+functions.
+IRDSInstancesAPI is satisfied by the Amazon RDS client's StopInstances,  StartInstances and DescribeInstances methods.
+*/
+
+type IRDSInstancesAPI interface {
+	StopDBInstance(ctx context.Context, params *rds.StopDBInstanceInput, optFns ...func(*rds.Options)) (*rds.StopDBInstanceOutput, error)
+	StartDBInstance(ctx context.Context, params *rds.StartDBInstanceInput, optFns ...func(*rds.Options)) (*rds.StartDBInstanceOutput, error)
+	DescribeDBInstances(ctx context.Context, params *rds.DescribeDBInstancesInput, optFns ...func(*rds.Options)) (*rds.DescribeDBInstancesOutput, error)
+}
+
+func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, rdsClient IRDSInstancesAPI, action string) *InstanceCount {
 	action = strings.ToLower(action)
 	count := &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
 	switch action {
@@ -199,26 +241,7 @@ func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action strin
 
 			// Tag key: instance-scheduling
 			// Valid values: default (same as absence of tag), skip-scheduling, skip-auto-stop, skip-auto-start
-
-			if instanceIsPartOfAutoScalingGroup {
-				log.Print(skippedAutoScaledMessage)
-				skippedAutoScaledInstances = append(skippedAutoScaledInstances, *i.InstanceId)
-			} else if instanceSchedulingTag == "skip-scheduling" {
-				log.Print(skippedMessage)
-				skippedInstances = append(skippedInstances, *i.InstanceId)
-			} else if instanceSchedulingTag == "skip-auto-stop" {
-				if action == "stop" {
-					log.Print(skippedMessage)
-					skippedInstances = append(skippedInstances, *i.InstanceId)
-				} else if action == "start" {
-					log.Print(actedUponMessage)
-					instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
-					startInstance(client, *i.InstanceId)
-				} else if action == "test" {
-					log.Printf("Successfully tested skipping instance with Id %v\n", *i.InstanceId)
-					skippedInstances = append(skippedInstances, *i.InstanceId)
-				}
-			} else if instanceSchedulingTag == "skip-auto-start" {
+			if instanceSchedulingTag == "rds-stop-schedule" {
 				if action == "stop" {
 					log.Print(actedUponMessage)
 					instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
@@ -230,18 +253,61 @@ func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action strin
 					log.Printf("Successfully tested skipping instance with Id %v\n", *i.InstanceId)
 					skippedInstances = append(skippedInstances, *i.InstanceId)
 				}
-			} else { // if instance-scheduling tag is missing, or the value of the tag either default, not valid or empty the instance will be actioned
-				log.Print(actedUponMessage)
-				instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
+			} else if instanceSchedulingTag == "rds-start-schedule" {
 				if action == "stop" {
-					stopInstance(client, *i.InstanceId)
+					log.Print(skippedMessage)
+					skippedInstances = append(skippedInstances, *i.InstanceId)
 				} else if action == "start" {
+					log.Print(actedUponMessage)
+					instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
 					startInstance(client, *i.InstanceId)
 				} else if action == "test" {
-					log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
+					log.Printf("Successfully tested skipping instance with Id %v\n", *i.InstanceId)
+					skippedInstances = append(skippedInstances, *i.InstanceId)
+				}
+			} else {
+				if instanceIsPartOfAutoScalingGroup {
+					log.Print(skippedAutoScaledMessage)
+					skippedAutoScaledInstances = append(skippedAutoScaledInstances, *i.InstanceId)
+				} else if instanceSchedulingTag == "skip-scheduling" {
+					log.Print(skippedMessage)
+					skippedInstances = append(skippedInstances, *i.InstanceId)
+				} else if instanceSchedulingTag == "skip-auto-stop" {
+					if action == "stop" {
+						log.Print(skippedMessage)
+						skippedInstances = append(skippedInstances, *i.InstanceId)
+					} else if action == "start" {
+						log.Print(actedUponMessage)
+						instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
+						startInstance(client, *i.InstanceId)
+					} else if action == "test" {
+						log.Printf("Successfully tested skipping instance with Id %v\n", *i.InstanceId)
+						skippedInstances = append(skippedInstances, *i.InstanceId)
+					}
+				} else if instanceSchedulingTag == "skip-auto-start" {
+					if action == "stop" {
+						log.Print(actedUponMessage)
+						instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
+						stopInstance(client, *i.InstanceId)
+					} else if action == "start" {
+						log.Print(skippedMessage)
+						skippedInstances = append(skippedInstances, *i.InstanceId)
+					} else if action == "test" {
+						log.Printf("Successfully tested skipping instance with Id %v\n", *i.InstanceId)
+						skippedInstances = append(skippedInstances, *i.InstanceId)
+					}
+				} else { // if instance-scheduling tag is missing, or the value of the tag either default, not valid or empty the instance will be actioned
+					log.Print(actedUponMessage)
+					instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
+					if action == "stop" {
+						stopInstance(client, *i.InstanceId)
+					} else if action == "start" {
+						startInstance(client, *i.InstanceId)
+					} else if action == "test" {
+						log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
+					}
 				}
 			}
-
 		}
 	}
 
@@ -327,12 +393,13 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 	totalCount := &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
 	for accName, accId := range accounts {
 		ec2Client := getEc2ClientForMemberAccount(cfg, accName, accId)
+		rdsClient := rds.NewFromConfig(cfg) // Create an RDS client
 		if ec2Client == nil {
 			nonMemberAccountNames = append(nonMemberAccountNames, accName)
 		} else {
 			memberAccountNames = append(memberAccountNames, accName)
 			log.Printf("BEGIN: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
-			count := stopStartTestInstancesInMemberAccount(ec2Client, request.Action)
+			count := stopStartTestInstancesInMemberAccount(ec2Client, rdsClient, request.Action)
 			totalCount.actedUpon += count.actedUpon
 			totalCount.skipped += count.skipped
 			totalCount.skippedAutoScaled += count.skippedAutoScaled
