@@ -205,78 +205,154 @@ func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, rdsClient IR
 		log.Print("ERROR: Invalid Action. Must be one of 'start' 'stop' 'test'")
 		return count
 	}
+	result, err := client.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{})
 
-	// Handle EC2 instances
-	ec2Result, err := client.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{})
 	if err != nil {
 		log.Print("ERROR: Could not retrieve information about Amazon EC2 instances in member account:\n", err)
 		return count
 	}
 
-	for _, r := range ec2Result.Reservations {
+	instancesActedUpon := []string{}
+	skippedInstances := []string{}
+	skippedAutoScaledInstances := []string{}
+	for _, r := range result.Reservations {
 		for _, i := range r.Instances {
-			// Existing EC2 instance tag-based processing code
-			// ...
-			// Apply start or stop actions as needed
-			if instanceSchedulingTag == "skip-scheduling" {
+			var instanceSchedulingTag string
+			instanceIsPartOfAutoScalingGroup := false
+			for _, tag := range i.Tags {
+				if *tag.Key == "aws:autoscaling:groupName" {
+					instanceIsPartOfAutoScalingGroup = true
+					break
+				} else if *tag.Key == "instance-scheduling" {
+					instanceSchedulingTag = *tag.Value
+				}
+			}
+
+			instanceSchedulingTagDescr := fmt.Sprintf("with instance-scheduling tag having value '%v'", instanceSchedulingTag)
+			if instanceSchedulingTag == "" {
+				instanceSchedulingTagDescr = "with instance-scheduling tag being absent"
+			}
+
+			actedUponMessage := fmt.Sprintf("%v instance %v (ReservationId: %v) %v\n", action, *i.InstanceId, *r.ReservationId, instanceSchedulingTagDescr)
+			skippedMessage := fmt.Sprintf("Skipped instance %v (ReservationId: %v) %v\n", *i.InstanceId, *r.ReservationId, instanceSchedulingTagDescr)
+			skippedAutoScaledMessage := fmt.Sprintf("Skipped instance %v (ReservationId: %v) with aws:autoscaling:groupName tag because it is part of an Auto Scaling group\n", *i.InstanceId, *r.ReservationId)
+
+			// Tag key: instance-scheduling
+			// Valid values: default (same as absence of tag), skip-scheduling, skip-auto-stop, skip-auto-start
+
+			if instanceIsPartOfAutoScalingGroup {
+				log.Print(skippedAutoScaledMessage)
+				skippedAutoScaledInstances = append(skippedAutoScaledInstances, *i.InstanceId)
+			} else if instanceSchedulingTag == "skip-scheduling" {
+				log.Print(skippedMessage)
+				skippedInstances = append(skippedInstances, *i.InstanceId)
+			} else if instanceSchedulingTag == "skip-auto-stop" {
+				if action == "stop" {
+					log.Print(skippedMessage)
+					skippedInstances = append(skippedInstances, *i.InstanceId)
+				} else if action == "start" {
+					log.Print(actedUponMessage)
+					instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
+					startInstance(client, *i.InstanceId)
+				} else if action == "test" {
+					log.Printf("Successfully tested skipping instance with Id %v\n", *i.InstanceId)
+					skippedInstances = append(skippedInstances, *i.InstanceId)
+				}
+			} else if instanceSchedulingTag == "skip-auto-start" {
+				if action == "stop" {
+					log.Print(actedUponMessage)
+					instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
+					stopInstance(client, *i.InstanceId)
+				} else if action == "start" {
+					log.Print(skippedMessage)
+					skippedInstances = append(skippedInstances, *i.InstanceId)
+				} else if action == "test" {
+					log.Printf("Successfully tested skipping instance with Id %v\n", *i.InstanceId)
+					skippedInstances = append(skippedInstances, *i.InstanceId)
+				}
+			} else { // if instance-scheduling tag is missing, or the value of the tag either default, not valid or empty the instance will be actioned
+				log.Print(actedUponMessage)
+				instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
 				if action == "stop" {
 					stopInstance(client, *i.InstanceId)
 				} else if action == "start" {
 					startInstance(client, *i.InstanceId)
+				} else if action == "test" {
+					log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
 				}
 			}
+
 		}
 	}
 
 	// Handle RDS instances
-	rdsResult, err := rdsClient.DescribeDBInstances(context.TODO(), &rds.DescribeDBInstancesInput{})
-	if err != nil {
-		log.Print("ERROR: Could not retrieve information about Amazon RDS instances in member account:\n", err)
-		return count
-	}
-
-	for _, instance := range rdsResult.DBInstances {
-		// Check tags, skip auto-scaled instances, etc.
-		// Apply start or stop actions as needed
-		if *instance.DBClusterIdentifier == "skip-scheduling" {
-			// Apply start or stop actions as needed
-			if action == "stop" {
-				stopRDSInstance(rdsClient, *instance.DBInstanceIdentifier)
-			} else if action == "start" {
-				startRDSInstance(rdsClient, *instance.DBInstanceIdentifier)
+	rdsInstances, rdsErr := rdsClient.DescribeDBInstances(context.TODO(), &rds.DescribeDBInstancesInput{})
+	if rdsErr == nil {
+		for _, rdsInstance := range rdsInstances.DBInstances {
+			// Determine the action to perform on the RDS instance (start/stop/test)
+			if action == "start" {
+				startRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
+			} else if action == "stop" {
+				stopRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
+			} else if action == "test" {
+				log.Printf("Successfully tested RDS instance with Identifier %v\n", *rdsInstance.DBInstanceIdentifier)
 			}
 		}
+	} else {
+		log.Printf("ERROR: Could not retrieve information about Amazon RDS instances in member account:\n", rdsErr)
 	}
+	// ...
 
-	// Return the instance count
+	acted := "Started"
+	if action == "stop" {
+		acted = "Stopped"
+	} else if action == "test" {
+		acted = "Tested"
+	}
+	if len(instancesActedUpon) > 0 {
+		log.Printf("%v %v instances: %v\n", acted, len(instancesActedUpon), instancesActedUpon)
+		count.actedUpon = len(instancesActedUpon)
+	} else {
+		log.Printf("WARN: No instances found to %v!\n", action)
+	}
+	if len(skippedInstances) > 0 {
+		log.Printf("Skipped %v instances due to instance-scheduling tag: %v\n", len(skippedInstances), skippedInstances)
+		count.skipped = len(skippedInstances)
+	}
+	if len(skippedAutoScaledInstances) > 0 {
+		log.Printf("Skipped %v instances due to aws:autoscaling:groupName tag: %v\n", len(skippedAutoScaledInstances), skippedAutoScaledInstances)
+		count.skippedAutoScaled = len(skippedAutoScaledInstances)
+	}
 	return count
 }
 
-func getEc2ClientForMemberAccount(cfg aws.Config, accountName string, accountId string) (*ec2.Client, IRDSInstancesAPI) {
+func getEc2AndRDSClientForMemberAccount(cfg aws.Config, accountName string, accountId string) (IEC2InstancesAPI, IRDSInstancesAPI) {
 	roleARN := fmt.Sprintf("arn:aws:iam::%v:role/InstanceSchedulerAccess", accountId)
 	stsClient := sts.NewFromConfig(cfg)
 	provider := stscreds.NewAssumeRoleProvider(stsClient, roleARN)
 	cfg.Credentials = aws.NewCredentialsCache(provider)
 
+	// Create EC2 client
 	ec2Client := ec2.NewFromConfig(cfg)
-	rdsClient := rds.NewFromConfig(cfg)
-
-	// Check if the account has permissions to describe instances (both EC2 and RDS)
 	ec2Input := &ec2.DescribeInstancesInput{}
-	_, ec2Err := ec2Client.DescribeInstances(context.TODO(), ec2Input)
-	if ec2Err != nil {
-		if strings.Contains(ec2Err.Error(), "is not authorized to perform: ec2:DescribeInstances") {
-			log.Printf("WARN: account %v (%v) lacks permissions to describe EC2 instances\n", accountName, accountId)
+	_, err := ec2Client.DescribeInstances(context.TODO(), ec2Input)
+	if err != nil {
+		if strings.Contains(err.Error(), "is not authorized to perform: sts:AssumeRole on resource") {
+			log.Printf("WARN: account %v (%v) is ignored because it does not have the role InstanceSchedulerAccess, therefore is not a member account\n", accountName, accountId)
+			return nil, nil
 		} else {
-			log.Fatal(ec2Err)
+			log.Fatal(err)
 		}
 	}
 
+	// Create RDS client
+	rdsClient := rds.NewFromConfig(cfg)
 	rdsInput := &rds.DescribeDBInstancesInput{}
 	_, rdsErr := rdsClient.DescribeDBInstances(context.TODO(), rdsInput)
 	if rdsErr != nil {
-		if strings.Contains(rdsErr.Error(), "is not authorized to perform: rds:DescribeDBInstances") {
-			log.Printf("WARN: account %v (%v) lacks permissions to describe RDS instances\n", accountName, accountId)
+		if strings.Contains(rdsErr.Error(), "is not authorized to perform: sts:AssumeRole on resource") {
+			log.Printf("WARN: account %v (%v) is ignored because it does not have the role InstanceSchedulerAccess, therefore is not a member account\n", accountName, accountId)
+			return nil, nil
 		} else {
 			log.Fatal(rdsErr)
 		}
@@ -296,6 +372,9 @@ type InstanceSchedulingResponse struct {
 	ActedUpon             int      `json:"acted_upon"`
 	Skipped               int      `json:"skipped"`
 	SkippedAutoScaled     int      `json:"skipped_auto_scaled"`
+	RDSActedUpon          int      `json:"rds_acted_upon"`
+	RDSSkipped            int      `json:"rds_skipped"`
+	RDSSkippedAutoScaled  int      `json:"rds_skipped_auto_scaled"`
 }
 
 func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse, error) {
@@ -323,7 +402,7 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 	nonMemberAccountNames := []string{}
 	totalCount := &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
 	for accName, accId := range accounts {
-		ec2Client, rdsClient := getEc2ClientForMemberAccount(cfg, accName, accId)
+		ec2Client, rdsClient := getEc2AndRDSClientForMemberAccount(cfg, accName, accId)
 		if ec2Client == nil || rdsClient == nil {
 			nonMemberAccountNames = append(nonMemberAccountNames, accName)
 		} else {
