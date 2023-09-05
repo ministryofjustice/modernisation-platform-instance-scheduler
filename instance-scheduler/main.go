@@ -165,9 +165,12 @@ func startInstance(client IEC2InstancesAPI, instanceId string) {
 }
 
 type InstanceCount struct {
-	actedUpon         int
-	skipped           int
-	skippedAutoScaled int
+	actedUpon            int
+	skipped              int
+	skippedAutoScaled    int
+	RDSActedUpon         int
+	RDSSkipped           int
+	RDSSkippedAutoScaled int
 }
 
 // IEC2InstancesAPI
@@ -323,6 +326,7 @@ func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, rdsClient IR
 		log.Printf("Skipped %v instances due to aws:autoscaling:groupName tag: %v\n", len(skippedAutoScaledInstances), skippedAutoScaledInstances)
 		count.skippedAutoScaled = len(skippedAutoScaledInstances)
 	}
+
 	return count
 }
 
@@ -412,6 +416,9 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 			totalCount.actedUpon += count.actedUpon
 			totalCount.skipped += count.skipped
 			totalCount.skippedAutoScaled += count.skippedAutoScaled
+			totalCount.RDSActedUpon += count.RDSActedUpon
+			totalCount.RDSSkipped += count.RDSSkipped
+			totalCount.RDSSkippedAutoScaled += count.RDSSkippedAutoScaled
 			log.Printf("END: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
 		}
 	}
@@ -432,6 +439,9 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 		ActedUpon:             totalCount.actedUpon,
 		Skipped:               totalCount.skipped,
 		SkippedAutoScaled:     totalCount.skippedAutoScaled,
+		RDSActedUpon:          totalCount.RDSActedUpon,
+		RDSSkipped:            totalCount.RDSSkipped,
+		RDSSkippedAutoScaled:  totalCount.RDSSkippedAutoScaled,
 	}
 	bodyJson, _ := json.Marshal(body)
 	return events.APIGatewayProxyResponse{
