@@ -190,20 +190,20 @@ func (m *mockIEC2InstancesAPI) StartInstances(ctx context.Context, params *ec2.S
 
 type mockIRDSInstancesAPI struct {
 	DescribeDBInstancesOutput *rds.DescribeDBInstancesOutput
-	StartDBInstancesOutput    *rds.StartDBInstancesOutput
-	StopDBInstancesOutput     *rds.StopDBInstancesOutput
+	StartDBInstanceOutput     *rds.StartDBInstanceOutput
+	StopDBInstanceOutput      *rds.StopDBInstanceOutput
 }
 
 func (m *mockIRDSInstancesAPI) DescribeDBInstances(ctx context.Context, params *rds.DescribeDBInstancesInput, optFns ...func(*rds.Options)) (*rds.DescribeDBInstancesOutput, error) {
 	return m.DescribeDBInstancesOutput, nil
 }
 
-func (m *mockIRDSInstancesAPI) StopDBInstances(ctx context.Context, params *rds.StopDBInstancesInput, optFns ...func(*rds.Options)) (*rds.StopDBInstancesOutput, error) {
-	return m.StopDBInstancesOutput, nil
+func (m *mockIRDSInstancesAPI) StopDBInstance(ctx context.Context, params *rds.StopDBInstanceInput, optFns ...func(*rds.Options)) (*rds.StopDBInstanceOutput, error) {
+	return m.StopDBInstanceOutput, nil
 }
 
-func (m *mockIRDSInstancesAPI) StartDBInstances(ctx context.Context, params *rds.StartDBInstancesInput, optFns ...func(*rds.Options)) (*rds.StartDBInstancesOutput, error) {
-	return m.StartDBInstancesOutput, nil
+func (m *mockIRDSInstancesAPI) StartDBInstance(ctx context.Context, params *rds.StartDBInstanceInput, optFns ...func(*rds.Options)) (*rds.StartDBInstanceOutput, error) {
+	return m.StartDBInstanceOutput, nil
 }
 
 func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
