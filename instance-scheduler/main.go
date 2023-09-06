@@ -165,9 +165,12 @@ func startInstance(client IEC2InstancesAPI, instanceId string) {
 }
 
 type InstanceCount struct {
-	actedUpon            int
-	skipped              int
-	skippedAutoScaled    int
+	actedUpon         int
+	skipped           int
+	skippedAutoScaled int
+}
+
+type RDSInstanceCount struct {
 	RDSActedUpon         int
 	RDSSkipped           int
 	RDSSkippedAutoScaled int
@@ -311,21 +314,21 @@ func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action strin
 	return count
 }
 
-func StopStartTestRDSInstancesInMemberAccount(rdsClient IRDSInstancesAPI, action string) *InstanceCount {
+func StopStartTestRDSInstancesInMemberAccount(rdsClient IRDSInstancesAPI, action string) *RDSInstanceCount {
 	action = strings.ToLower(action)
-	count := &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
+	rdscount := &RDSInstanceCount{RDSActedUpon: 0, RDSSkipped: 0, RDSSkippedAutoScaled: 0}
 	switch action {
 	case "start", "stop", "test":
 		break
 	default:
 		log.Print("ERROR: Invalid Action. Must be one of 'start' 'stop' 'test'")
-		return count
+		return rdscount
 	}
 
 	rdsInstances, rdsErr := rdsClient.DescribeDBInstances(context.TODO(), &rds.DescribeDBInstancesInput{})
 	if rdsErr != nil {
 		log.Printf("ERROR: Could not retrieve information about Amazon RDS instances in member account:\n", rdsErr)
-		return count
+		return rdscount
 	}
 
 	for _, rdsInstance := range rdsInstances.DBInstances {
@@ -339,7 +342,7 @@ func StopStartTestRDSInstancesInMemberAccount(rdsClient IRDSInstancesAPI, action
 		}
 	}
 
-	return count
+	return rdscount
 }
 
 func getEc2ClientForMemberAccount(cfg aws.Config, accountName string, accountId string) IEC2InstancesAPI {
@@ -450,9 +453,9 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 			totalCount.SkippedAutoScaled += count.skippedAutoScaled
 
 			rdsCount := StopStartTestRDSInstancesInMemberAccount(rdsClient, request.Action)
-			totalCount.RDSActedUpon += rdsCount.actedUpon
-			totalCount.RDSSkipped += rdsCount.skipped
-			totalCount.RDSSkippedAutoScaled += rdsCount.skippedAutoScaled
+			totalCount.RDSActedUpon += rdsCount.RDSActedUpon
+			totalCount.RDSSkipped += rdsCount.RDSSkipped
+			totalCount.RDSSkippedAutoScaled += rdsCount.RDSSkippedAutoScaled
 
 			log.Printf("END: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
 		}
