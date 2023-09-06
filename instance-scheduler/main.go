@@ -198,7 +198,7 @@ type IRDSInstancesAPI interface {
 	DescribeDBInstances(ctx context.Context, params *rds.DescribeDBInstancesInput, optFns ...func(*rds.Options)) (*rds.DescribeDBInstancesOutput, error)
 }
 
-func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, rdsClient IRDSInstancesAPI, action string) *InstanceCount {
+func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action string) *InstanceCount {
 	action = strings.ToLower(action)
 	count := &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
 	switch action {
@@ -288,24 +288,6 @@ func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, rdsClient IR
 		}
 	}
 
-	// Handle RDS instances
-	rdsInstances, rdsErr := rdsClient.DescribeDBInstances(context.TODO(), &rds.DescribeDBInstancesInput{})
-	if rdsErr == nil {
-		for _, rdsInstance := range rdsInstances.DBInstances {
-			// Determine the action to perform on the RDS instance (start/stop/test)
-			if action == "start" {
-				startRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
-			} else if action == "stop" {
-				stopRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
-			} else if action == "test" {
-				log.Printf("Successfully tested RDS instance with Identifier %v\n", *rdsInstance.DBInstanceIdentifier)
-			}
-		}
-	} else {
-		log.Printf("ERROR: Could not retrieve information about Amazon RDS instances in member account:\n", rdsErr)
-	}
-	// ...
-
 	acted := "Started"
 	if action == "stop" {
 		acted = "Stopped"
@@ -326,11 +308,41 @@ func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, rdsClient IR
 		log.Printf("Skipped %v instances due to aws:autoscaling:groupName tag: %v\n", len(skippedAutoScaledInstances), skippedAutoScaledInstances)
 		count.skippedAutoScaled = len(skippedAutoScaledInstances)
 	}
+	return count
+}
+
+func StopStartTestRDSInstancesInMemberAccount(rdsClient IRDSInstancesAPI, action string) *InstanceCount {
+	action = strings.ToLower(action)
+	count := &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
+	switch action {
+	case "start", "stop", "test":
+		break
+	default:
+		log.Print("ERROR: Invalid Action. Must be one of 'start' 'stop' 'test'")
+		return count
+	}
+
+	rdsInstances, rdsErr := rdsClient.DescribeDBInstances(context.TODO(), &rds.DescribeDBInstancesInput{})
+	if rdsErr != nil {
+		log.Printf("ERROR: Could not retrieve information about Amazon RDS instances in member account:\n", rdsErr)
+		return count
+	}
+
+	for _, rdsInstance := range rdsInstances.DBInstances {
+		// Determine the action to perform on the RDS instance (start/stop/test)
+		if action == "start" {
+			startRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
+		} else if action == "stop" {
+			stopRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
+		} else if action == "test" {
+			log.Printf("Successfully tested RDS instance with Identifier %v\n", *rdsInstance.DBInstanceIdentifier)
+		}
+	}
 
 	return count
 }
 
-func getEc2AndRDSClientForMemberAccount(cfg aws.Config, accountName string, accountId string) (IEC2InstancesAPI, IRDSInstancesAPI) {
+func getEc2ClientForMemberAccount(cfg aws.Config, accountName string, accountId string) IEC2InstancesAPI {
 	roleARN := fmt.Sprintf("arn:aws:iam::%v:role/InstanceSchedulerAccess", accountId)
 	stsClient := sts.NewFromConfig(cfg)
 	provider := stscreds.NewAssumeRoleProvider(stsClient, roleARN)
@@ -343,11 +355,20 @@ func getEc2AndRDSClientForMemberAccount(cfg aws.Config, accountName string, acco
 	if err != nil {
 		if strings.Contains(err.Error(), "is not authorized to perform: sts:AssumeRole on resource") {
 			log.Printf("WARN: account %v (%v) is ignored because it does not have the role InstanceSchedulerAccess, therefore is not a member account\n", accountName, accountId)
-			return nil, nil
+			return nil
 		} else {
 			log.Fatal(err)
 		}
 	}
+
+	return ec2Client
+}
+
+func getRDSClientForMemberAccount(cfg aws.Config, accountName string, accountId string) IRDSInstancesAPI {
+	roleARN := fmt.Sprintf("arn:aws:iam::%v:role/InstanceSchedulerAccess", accountId)
+	stsClient := sts.NewFromConfig(cfg)
+	provider := stscreds.NewAssumeRoleProvider(stsClient, roleARN)
+	cfg.Credentials = aws.NewCredentialsCache(provider)
 
 	// Create RDS client
 	rdsClient := rds.NewFromConfig(cfg)
@@ -356,13 +377,12 @@ func getEc2AndRDSClientForMemberAccount(cfg aws.Config, accountName string, acco
 	if rdsErr != nil {
 		if strings.Contains(rdsErr.Error(), "is not authorized to perform: sts:AssumeRole on resource") {
 			log.Printf("WARN: account %v (%v) is ignored because it does not have the role InstanceSchedulerAccess, therefore is not a member account\n", accountName, accountId)
-			return nil, nil
+			return nil
 		} else {
 			log.Fatal(rdsErr)
 		}
 	}
-
-	return ec2Client, rdsClient
+	return rdsClient
 }
 
 type InstanceSchedulingRequest struct {
@@ -404,21 +424,36 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 	accounts := getNonProductionAccounts(environments, skipAccounts)
 	memberAccountNames := []string{}
 	nonMemberAccountNames := []string{}
-	totalCount := &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
+	totalCount := &InstanceSchedulingResponse{
+		Action:                request.Action,
+		MemberAccountNames:    []string{},
+		NonMemberAccountNames: []string{},
+		ActedUpon:             0,
+		Skipped:               0,
+		SkippedAutoScaled:     0,
+		RDSActedUpon:          0,
+		RDSSkipped:            0,
+		RDSSkippedAutoScaled:  0,
+	}
 	for accName, accId := range accounts {
-		ec2Client, rdsClient := getEc2AndRDSClientForMemberAccount(cfg, accName, accId)
-		if ec2Client == nil || rdsClient == nil {
+		ec2Client := getEc2ClientForMemberAccount(cfg, accName, accId)
+		rdsClient := getRDSClientForMemberAccount(cfg, accName, accId)
+
+		if ec2Client == nil && rdsClient == nil {
 			nonMemberAccountNames = append(nonMemberAccountNames, accName)
 		} else {
 			memberAccountNames = append(memberAccountNames, accName)
 			log.Printf("BEGIN: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
-			count := stopStartTestInstancesInMemberAccount(ec2Client, rdsClient, request.Action)
-			totalCount.actedUpon += count.actedUpon
-			totalCount.skipped += count.skipped
-			totalCount.skippedAutoScaled += count.skippedAutoScaled
-			totalCount.RDSActedUpon += count.RDSActedUpon
-			totalCount.RDSSkipped += count.RDSSkipped
-			totalCount.RDSSkippedAutoScaled += count.RDSSkippedAutoScaled
+			count := stopStartTestInstancesInMemberAccount(ec2Client, request.Action)
+			totalCount.ActedUpon += count.actedUpon
+			totalCount.Skipped += count.skipped
+			totalCount.SkippedAutoScaled += count.skippedAutoScaled
+
+			rdsCount := StopStartTestRDSInstancesInMemberAccount(rdsClient, request.Action)
+			totalCount.RDSActedUpon += rdsCount.actedUpon
+			totalCount.RDSSkipped += rdsCount.skipped
+			totalCount.RDSSkippedAutoScaled += rdsCount.skippedAutoScaled
+
 			log.Printf("END: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
 		}
 	}
@@ -436,9 +471,9 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 		Action:                request.Action,
 		MemberAccountNames:    memberAccountNames,
 		NonMemberAccountNames: nonMemberAccountNames,
-		ActedUpon:             totalCount.actedUpon,
-		Skipped:               totalCount.skipped,
-		SkippedAutoScaled:     totalCount.skippedAutoScaled,
+		ActedUpon:             totalCount.ActedUpon,
+		Skipped:               totalCount.Skipped,
+		SkippedAutoScaled:     totalCount.SkippedAutoScaled,
 		RDSActedUpon:          totalCount.RDSActedUpon,
 		RDSSkipped:            totalCount.RDSSkipped,
 		RDSSkippedAutoScaled:  totalCount.RDSSkippedAutoScaled,
