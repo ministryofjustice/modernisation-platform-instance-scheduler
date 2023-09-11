@@ -214,7 +214,7 @@ func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action strin
 	result, err := client.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{})
 
 	if err != nil {
-		log.Print("ERROR: Could not retrieve information about Amazon EC2 instances in member account:\n", err)
+		log.Println("ERROR: Could not retrieve information about Amazon EC2 instances in member account:", err)
 		return count
 	}
 
@@ -316,7 +316,8 @@ func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action strin
 
 func StopStartTestRDSInstancesInMemberAccount(rdsClient IRDSInstancesAPI, action string) *RDSInstanceCount {
 	action = strings.ToLower(action)
-	rdscount := &RDSInstanceCount{RDSActedUpon: 0, RDSSkipped: 0, RDSSkippedAutoScaled: 0}
+	rdscount := &RDSInstanceCount{RDSActedUpon: 0, RDSSkipped: 0}
+
 	switch action {
 	case "start", "stop", "test":
 		break
@@ -325,21 +326,66 @@ func StopStartTestRDSInstancesInMemberAccount(rdsClient IRDSInstancesAPI, action
 		return rdscount
 	}
 
-	rdsInstances, rdsErr := rdsClient.DescribeDBInstances(context.TODO(), &rds.DescribeDBInstancesInput{})
-	if rdsErr != nil {
-		log.Printf("ERROR: Could not retrieve information about Amazon RDS instances in member account:\n", rdsErr)
+	result, err := rdsClient.DescribeDBInstances(context.TODO(), &rds.DescribeDBInstancesInput{})
+
+	if err != nil {
+		log.Print("ERROR: Could not retrieve information about Amazon RDS instances in member account:\n", err)
 		return rdscount
 	}
 
-	for _, rdsInstance := range rdsInstances.DBInstances {
-		// Determine the action to perform on the RDS instance (start/stop/test)
-		if action == "start" {
-			startRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
-		} else if action == "stop" {
-			stopRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
-		} else if action == "test" {
-			log.Printf("Successfully tested RDS instance with Identifier %v\n", *rdsInstance.DBInstanceIdentifier)
+	RDSinstancesActedUpon := []string{}
+	RDSskippedInstances := []string{}
+
+	for _, rdsInstance := range result.DBInstances {
+		var instanceSchedulingTag string
+		for _, tag := range rdsInstance.TagList {
+			if *tag.Key == "instance-scheduling" {
+				instanceSchedulingTag = *tag.Value
+				break
+			}
 		}
+
+		instanceSchedulingTagDescr := fmt.Sprintf("with instance-scheduling tag having value '%v'", instanceSchedulingTag)
+		if instanceSchedulingTag == "" {
+			instanceSchedulingTagDescr = "with instance-scheduling tag being absent"
+		}
+
+		actedUponMessage := fmt.Sprintf("%v instance %v %v\n", action, *rdsInstance.DBInstanceIdentifier, instanceSchedulingTagDescr)
+		skippedMessage := fmt.Sprintf("Skipped instance %v %v\n", *rdsInstance.DBInstanceIdentifier, instanceSchedulingTagDescr)
+
+		if instanceSchedulingTag == "skip-scheduling" {
+			log.Print(skippedMessage)
+			RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
+		} else {
+			log.Print(actedUponMessage)
+			RDSinstancesActedUpon = append(RDSinstancesActedUpon, *rdsInstance.DBInstanceIdentifier)
+
+			if action == "stop" {
+
+				stopRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
+			} else if action == "start" {
+				startRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
+			} else if action == "test" {
+				log.Printf("Successfully tested RDS instance with Id %v\n", *rdsInstance.DBInstanceIdentifier)
+			}
+		}
+	}
+
+	acted := "Started"
+	if action == "stop" {
+		acted = "Stopped"
+	} else if action == "test" {
+		acted = "Tested"
+	}
+	if len(RDSinstancesActedUpon) > 0 {
+		log.Printf("%v %v RDS instances: %v\n", acted, len(RDSinstancesActedUpon), RDSinstancesActedUpon)
+		rdscount.RDSActedUpon = len(RDSinstancesActedUpon)
+	} else {
+		log.Printf("WARN: No RDS instances found to %v!\n", action)
+	}
+	if len(RDSskippedInstances) > 0 {
+		log.Printf("Skipped %v RDS instances due to instance-scheduling tag: %v\n", len(RDSskippedInstances), RDSskippedInstances)
+		rdscount.RDSSkipped = len(RDSskippedInstances)
 	}
 
 	return rdscount

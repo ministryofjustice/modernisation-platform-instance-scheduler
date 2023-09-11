@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2type "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
+	"github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
@@ -204,6 +205,71 @@ func (m *mockIRDSInstancesAPI) StopDBInstance(ctx context.Context, params *rds.S
 
 func (m *mockIRDSInstancesAPI) StartDBInstance(ctx context.Context, params *rds.StartDBInstanceInput, optFns ...func(*rds.Options)) (*rds.StartDBInstanceOutput, error) {
 	return m.StartDBInstanceOutput, nil
+}
+func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
+    rdsTests := []struct {
+        testTitle     string
+        client        *mockIRDSInstancesAPI
+        action        string
+        expectedCount DBInstanceCount
+    }{
+        {
+            testTitle: "RDS testing Test action",
+            client: &mockIRDSInstancesAPI{
+                DescribeDBInstancesOutput: &rds.DescribeDBInstancesOutput{
+                    DBInstances: []rdstypes.DBInstance{
+                        {
+                            DBInstanceIdentifier: aws.String("test-db"),
+                    		TagList: []*rdstypes.Tag{
+                        {
+                            Key:   aws.String("instance-scheduling"),
+                            Value: aws.String("default"),
+                        },
+                    },
+                },
+            action:        "Test",
+            expectedCount: DBInstanceCount{4, 3}, // Exclude the auto-scaling part
+        },
+        {
+            testTitle: "RDS testing Stop action",
+            client: &mockIRDSInstancesAPI{
+                DescribeDBInstancesOutput: &rds.DescribeDBInstancesOutput{
+                    DBInstances: []rdstypes.DBInstance{
+                        {
+                            DBInstanceIdentifier: aws.String("test-db"),
+                        },
+                        // Add more RDS test cases for "stop" action here
+                    },
+                },
+            },
+            action:        "Stop",
+            expectedCount: DBInstanceCount{2, 1}, // Exclude the auto-scaling part
+        },
+        {
+            testTitle: "RDS testing Start action",
+            client: &mockIRDSInstancesAPI{
+                DescribeDBInstancesOutput: &rds.DescribeDBInstancesOutput{
+                    DBInstances: []rdstypes.DBInstance{
+                        {
+                            DBInstanceIdentifier: aws.String("test-db"),
+                        },
+                        // Add more RDS test cases for "start" action here
+                    },
+                },
+            },
+            action:        "Start",
+            expectedCount: DBInstanceCount{2, 1}, // Exclude the auto-scaling part
+        },
+        // Add more RDS-specific test cases here
+    }
+
+    for _, subtest := range rdsTests {
+        t.Run(subtest.testTitle, func(t *testing.T) {
+            // Call your RDS-specific test function here
+            actualDBInstanceCount := stopStartTestRDSInstancesInMemberAccount(subtest.client, subtest.action)
+            // Perform assertions here
+        })
+    }
 }
 
 func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
