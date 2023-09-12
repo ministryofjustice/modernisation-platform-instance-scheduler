@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2type "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
-	"github.com/aws/aws-sdk-go-v2/service/rds/types"
+	rdstype "github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
@@ -207,69 +207,437 @@ func (m *mockIRDSInstancesAPI) StartDBInstance(ctx context.Context, params *rds.
 	return m.StartDBInstanceOutput, nil
 }
 func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
-    rdsTests := []struct {
-        testTitle     string
-        client        *mockIRDSInstancesAPI
-        action        string
-        expectedCount DBInstanceCount
-    }{
-        {
-            testTitle: "RDS testing Test action",
-            client: &mockIRDSInstancesAPI{
-                DescribeDBInstancesOutput: &rds.DescribeDBInstancesOutput{
-                    DBInstances: []rdstypes.DBInstance{
-                        {
-                            DBInstanceIdentifier: aws.String("test-db"),
-                    		TagList: []*rdstypes.Tag{
-                        {
-                            Key:   aws.String("instance-scheduling"),
-                            Value: aws.String("default"),
-                        },
-                    },
-                },
-            action:        "Test",
-            expectedCount: DBInstanceCount{4, 3}, // Exclude the auto-scaling part
-        },
-        {
-            testTitle: "RDS testing Stop action",
-            client: &mockIRDSInstancesAPI{
-                DescribeDBInstancesOutput: &rds.DescribeDBInstancesOutput{
-                    DBInstances: []rdstypes.DBInstance{
-                        {
-                            DBInstanceIdentifier: aws.String("test-db"),
-                        },
-                        // Add more RDS test cases for "stop" action here
-                    },
-                },
-            },
-            action:        "Stop",
-            expectedCount: DBInstanceCount{2, 1}, // Exclude the auto-scaling part
-        },
-        {
-            testTitle: "RDS testing Start action",
-            client: &mockIRDSInstancesAPI{
-                DescribeDBInstancesOutput: &rds.DescribeDBInstancesOutput{
-                    DBInstances: []rdstypes.DBInstance{
-                        {
-                            DBInstanceIdentifier: aws.String("test-db"),
-                        },
-                        // Add more RDS test cases for "start" action here
-                    },
-                },
-            },
-            action:        "Start",
-            expectedCount: DBInstanceCount{2, 1}, // Exclude the auto-scaling part
-        },
-        // Add more RDS-specific test cases here
-    }
+	rdsTests := []struct {
+		testTitle     string
+		client        *mockIRDSInstancesAPI
+		action        string
+		expectedCount DBInstanceCount
+	}{
+		{
+			testTitle: "RDS testing Test action",
+			client: &mockIRDSInstancesAPI{
+				DescribeDBInstancesOutput: &rds.DescribeDBInstancesOutput{
+					DBInstance: []rdstype.DBInstances{
+						{
+							DBInstanceIdentifier: aws.String("r-0899f7abdd9be06d8"),
+							DBInstance: []rdstype.DBInstances{
+								// aws:autoscaling:groupName is set, therefore skip scheduling, skipped auto scaled: 1
+								{
+									DBInstanceIdentifier: aws.String("i-6567788010"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("aws:autoscaling:groupName"),
+											Value: aws.String("bastion_linux_daily"),
+										},
+									},
+								},
+								// instance-scheduling = default, therefore schedule an instance, acted upon: 1
+								{
+									DBInstanceIdentifier: aws.String("i-6562278100"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("default"),
+										},
+									},
+								},
+							},
+						},
+						{
+							DBInstanceIdentifier: aws.String("r-0c318eab370f3d57a"),
+							DBInstance: []rdstype.DBInstances{
+								// both instance-scheduling and aws:autoscaling:groupName tags are set, skip scheduling due to autoscaling, skipped auto scaled: 1
+								{
+									DBInstanceIdentifier: aws.String("i-6562788010"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("aws:autoscaling:groupName"),
+											Value: aws.String("weblogic-CNOMT1"),
+										},
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("skip-auto-stop"),
+										},
+									},
+								},
+								// no instance-scheduling and no aws:autoscaling:groupName tags, therefore schedule an instance, acted upon: 1
+								{
+									DBInstanceIdentifier: aws.String("i-6562279100"),
+								},
+								// instance-scheduling = skip-scheduling, therefore skip scheduling, skipped: 1
+								{
+									DBInstanceIdentifier: aws.String("i-2162279001"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("skip-scheduling"),
+										},
+									},
+								},
+								// instance-scheduling is set to an empty string, therefore ignore the tag and auto schedule, acted upon: 1
+								{
+									DBInstanceIdentifier: aws.String("i-7862279100"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String(""),
+										},
+									},
+								},
+								// instance-scheduling = "invalid-value", therefore ignore the tag and auto schedule, acted upon: 1
+								{
+									DBInstanceIdentifier: aws.String("i-7863371100"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("invalid-value"),
+										},
+									},
+								},
+								// instance-scheduling = skip-auto-stop, therefore skip auto stop, but not test, skipped: 1
+								{
+									DBInstanceIdentifier: aws.String("i-1265579001"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("skip-auto-stop"),
+										},
+									},
+								},
+								// instance-scheduling = skip-auto-start, therefore skip auto start, but not test, skipped: 1
+								{
+									DBInstanceIdentifier: aws.String("i-9262279001"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("skip-auto-start"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			action:        "Test",
+			expectedCount: DBInstanceCount{4, 3, 2},
+		},
+		{
+			testTitle: "RDS testing Stop action",
+			client: &mockIRDSInstancesAPI{
+				DescribeDBInstanceOutput: &rds.DescribeDBInstanceOutput{
+					DBInstance: []rdstype.DBInstances{
+						{
+							DBInstanceIdentifier: aws.String("r-0899f7abdd9be06d8"),
+							DBInstance: []rdstype.DBInstances{
+								// aws:autoscaling:groupName is set, therefore skip scheduling, skipped auto scaled: 1
+								{
+									DBInstanceIdentifier: aws.String("i-6567788010"),
+									Tags: []rdstype.Tag{
+										{
+											Key:   aws.String("aws:autoscaling:groupName"),
+											Value: aws.String("bastion_linux_daily"),
+										},
+									},
+								},
+								// instance-scheduling = default, therefore schedule an instance, acted upon: 1
+								{
+									DBInstanceIdentifier: aws.String("i-6562278100"),
+									Tags: []rdstype.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("default"),
+										},
+									},
+								},
+							},
+						},
+						{
+							DBInstanceIdentifier: aws.String("r-0c318eab370f3d57a"),
+							Instances: []ec2type.Instance{
+								// both instance-scheduling and aws:autoscaling:groupName tags are set, skip scheduling due to autoscaling, skipped auto scaled: 1
+								{
+									DBInstanceIdentifier: aws.String("i-6562788010"),
+									Tags: []ec2type.Tag{
+										{
+											Key:   aws.String("aws:autoscaling:groupName"),
+											Value: aws.String("weblogic-CNOMT1"),
+										},
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("skip-auto-stop"),
+										},
+									},
+								},
+								// no instance-scheduling and no aws:autoscaling:groupName tags, therefore schedule an instance, acted upon: 1
+								{
+									DBInstanceIdentifier: aws.String("i-6562279100"),
+								},
+								// instance-scheduling = skip-scheduling, therefore skip scheduling, skipped: 1
+								{
+									DBInstanceIdentifier: aws.String("i-2162279001"),
+									Tags: []ec2type.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("skip-scheduling"),
+										},
+									},
+								},
+								// instance-scheduling is set to an empty string, therefore ignore the tag and auto schedule, acted upon: 1
+								{
+									DBInstanceIdentifier: aws.String("i-7862279100"),
+									Tags: []ec2type.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String(""),
+										},
+									},
+								},
+								// instance-scheduling = "invalid-value", therefore ignore the tag and auto schedule, acted upon: 1
+								{
+									DBInstanceIdentifier: aws.String("i-7863371100"),
+									Tags: []ec2type.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("invalid-value"),
+										},
+									},
+								},
+								// instance-scheduling = skip-auto-stop, therefore skip auto stop, skipped: 1
+								{
+									DBInstanceIdentifier: aws.String("i-1265579001"),
+									Tags: []ec2type.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("skip-auto-stop"),
+										},
+									},
+								},
+								// instance-scheduling = skip-auto-start, therefore skip auto start, but not stop, acted upon: 1
+								{
+									DBInstanceIdentifier: aws.String("i-9262279100"),
+									Tags: []ec2type.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("skip-auto-start"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			action:        "Stop",
+			expectedCount: DBInstanceCount{5, 2, 2},
+		},
+		{
+			testTitle: "RDS testing Start action",
+			client: &mockIRDSInstancesAPI{
+				DescribeDBInstancesOutput: &rds.DescribeDBInstancesOutput{
+					DBInstance: []rdstype.DBInstances{
+						{
+							DBInstanceIdentifier: aws.String("r-0899f7abdd9be06d8"),
+							DBInstance: []rdstype.DBInstances{
+								// aws:autoscaling:groupName is set, therefore skip scheduling, skipped auto scaled: 1
+								{
+									DBInstanceIdentifier: aws.String("i-6567788001"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("aws:autoscaling:groupName"),
+											Value: aws.String("bastion_linux_daily"),
+										},
+									},
+								},
+								// instance-scheduling = default, therefore schedule an instance, acted upon: 1
+								{
+									DBInstanceIdentifier: aws.String("i-6562278100"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("default"),
+										},
+									},
+								},
+							},
+						},
+						{
+							DBInstanceIdentifier: aws.String("r-0c318eab370f3d57a"),
+							DBInstance: []rdstype.DBInstances{
+								// both instance-scheduling and aws:autoscaling:groupName tags are set, skip scheduling due to autoscaling, skipped auto scaled: 1
+								{
+									DBInstanceIdentifier: aws.String("i-6562788001"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("aws:autoscaling:groupName"),
+											Value: aws.String("weblogic-CNOMT1"),
+										},
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("skip-auto-stop"),
+										},
+									},
+								},
+								// no instance-scheduling and no aws:autoscaling:groupName tags, therefore schedule an instance, acted upon: 1
+								{
+									DBInstanceIdentifier: aws.String("i-6562279100"),
+								},
+								// instance-scheduling = skip-scheduling, therefore skip scheduling, skipped: 1
+								{
+									DBInstanceIdentifier: aws.String("i-2162279010"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("skip-scheduling"),
+										},
+									},
+								},
+								// instance-scheduling is set to an empty string, therefore ignore the tag and auto schedule, acted upon: 1
+								{
+									DBInstanceIdentifier: aws.String("i-7862279100"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String(""),
+										},
+									},
+								},
+								// instance-scheduling = "invalid-value", therefore ignore the tag and auto schedule, acted upon: 1
+								{
+									DBInstanceIdentifier: aws.String("i-7863371100"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("invalid-value"),
+										},
+									},
+								},
+								// instance-scheduling = skip-auto-stop, therefore skip auto stop, but not start, acted upon: 1
+								{
+									DBInstanceIdentifier: aws.String("i-1265579100"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("skip-auto-stop"),
+										},
+									},
+								},
+								// instance-scheduling = skip-auto-start, therefore skip auto start, skipped: 1
+								{
+									DBInstanceIdentifier: aws.String("i-9262279010"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("skip-auto-start"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			action:        "Start",
+			expectedCount: DBInstanceCount{5, 2, 2},
+		},
+		{
+			testTitle: "RDS testing if action input is not case sensitive when passing start",
+			client: &mockIRDSInstancesAPI{
+				DescribeDBInstancesOutput: &rds.DescribeDBInstancesOutput{
+					DBInstance: []rdstype.DBInstances{
+						{
+							DBInstanceIdentifier: aws.String("r-0899f7abdd9be06d8"),
+							DBInstance: []rdstype.DBInstances{
+								// instance-scheduling = skip-auto-start, therefore skip auto start, skipped: 1
+								{
+									DBInstanceIdentifier: aws.String("i-9262279981"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("skip-auto-start"),
+										},
+									},
+								},
+								// instance-scheduling = skip-auto-stop, therefore skip auto stop, but not start, acted upon: 1
+								{
+									DBInstanceIdentifier: aws.String("i-1265579989"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("skip-auto-stop"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			action:        "start",
+			expectedCount: DBInstanceCount{1, 1, 0},
+		},
+		{
+			// aws:autoscaling:groupName tag is set, but action is an empty string, therefore InstanceCount: {0,0,0}
+			testTitle: "RDS testing empty action input",
+			client: &mockIRDSInstancesAPI{
+				DescribeDBInstanceOutput: &rds.DescribeDBInstanceOutput{
+					DBInstance: []rdstype.DBInstances{
+						{
+							DBInstanceIdentifier: aws.String("r-0899f7abdd9be06d8"),
+							DBInstance: []rdstypes.DBInstance{
+								{
+									DBInstanceIdentifier: aws.String("i-6567788909"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("aws:autoscaling:groupName"),
+											Value: aws.String("bastion-linux"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			action:        "",
+			expectedCount: DBInstanceCount{0, 0, 0},
+		},
+		{
+			// instance-scheduling = default, but action value is invalid, therefore InstanceCount: {0,0,0}
+			testTitle: "RDS testing invalid action input",
+			client: &mockIRDSInstancesAPI{
+				DescribeDBInstanceOutput: &rds.DescribeDBInstanceOutput{
+					DBInstance: []rdstype.DBInstances{
+						{
+							DBInstanceIdentifier: aws.String("r-0899f7abdd9be06d8"),
+							DBInstance: []rdstype.DBInstances{
+								{
+									DBInstanceIdentifier: aws.String("i-1265579989"),
+									TagList: []rdstype.Tag{
+										{
+											Key:   aws.String("instance-scheduling"),
+											Value: aws.String("default"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			action:        "invalid",
+			expectedCount: DBInstanceCount{0, 0, 0},
+		},
+	}
 
-    for _, subtest := range rdsTests {
-        t.Run(subtest.testTitle, func(t *testing.T) {
-            // Call your RDS-specific test function here
-            actualDBInstanceCount := stopStartTestRDSInstancesInMemberAccount(subtest.client, subtest.action)
-            // Perform assertions here
-        })
-    }
+	for _, subtest := range tests {
+		t.Run(subtest.testTitle, func(t *testing.T) {
+			actualInstanceCount := StopStartTestRDSInstancesInMemberAccount(subtest.client, subtest.action)
+			if want, got := subtest.expectedCount, actualInstanceCount; want != *got {
+				t.Errorf("want %v, got %v", want, got)
+			}
+		})
+	}
 }
 
 func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
