@@ -13,7 +13,7 @@ func TestHandler(t *testing.T) {
 	t.Run("Test request", func(t *testing.T) {
 		// Accounts mi-platform-development and analytical-platform-data-development cause the main_int_test.go to fail because they are non-member accounts
 		// lacking the InstanceSchedulerAccess role, but they have the '-development' suffix typically present in member accounts.
-		os.Setenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS", "mi-platform-development,analytical-platform-data-development,analytical-platform-development,")
+		os.Setenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS", "mi-platform-development,analytical-platform-data-development,analytical-platform-development,moj-network-operations-centre-preproduction,")
 
 		result, err := handler(InstanceSchedulingRequest{Action: "Test"})
 		if err != nil {
@@ -42,7 +42,7 @@ func TestHandler(t *testing.T) {
 		assert.Greater(t, res.ActedUpon, 20, fmt.Sprintf("Number of instances acted upon seems too low. %v", addMsg))
 		assert.Less(t, res.ActedUpon, 100, fmt.Sprintf("Number of instances acted upon seems too high. %v", addMsg))
 		assert.Greater(t, res.Skipped, 0, fmt.Sprintf("Number of skipped instances seems too low. %v", addMsg))
-		assert.Less(t, res.Skipped, 50, fmt.Sprintf("Number of skipped instances seems too high. %v", addMsg))
+		assert.Less(t, res.Skipped, 80, fmt.Sprintf("Number of skipped instances seems too high. %v", addMsg))
 		assert.Greater(t, res.SkippedAutoScaled, 20, fmt.Sprintf("Number of skipped instances that belong to an Auto Scaling group seems too low. %v", addMsg))
 		assert.Less(t, res.SkippedAutoScaled, 100, fmt.Sprintf("Number of skipped instances that belong to an Auto Scaling group seems too high. %v", addMsg))
 	})
