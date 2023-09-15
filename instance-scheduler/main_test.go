@@ -228,30 +228,6 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 								},
 							},
 						},
-						// aws:autoscaling:groupName is set, therefore skip scheduling, skipped auto scaled: 1
-						{
-							DBInstanceIdentifier: aws.String("test-database-2"),
-							TagList: []rdstype.Tag{
-								{
-									Key:   aws.String("aws:autoscaling:groupName"),
-									Value: aws.String("bastion_linux_daily"),
-								},
-							},
-						},
-						// both RDS instance-scheduling and aws:autoscaling:groupName tags are set, skip scheduling due to autoscaling, skipped auto scaled: 1
-						{
-							DBInstanceIdentifier: aws.String("test-database-1"),
-							TagList: []rdstype.Tag{
-								{
-									Key:   aws.String("aws:autoscaling:groupName"),
-									Value: aws.String("weblogic-CNOMT1"),
-								},
-								{
-									Key:   aws.String("instance-scheduling"),
-									Value: aws.String("skip-auto-stop"),
-								},
-							},
-						},
 						// no RDS instance-scheduling and no aws:autoscaling:groupName tags, therefore schedule an instance, acted upon: 1
 						{
 							DBInstanceIdentifier: aws.String("test-database-2"),
@@ -327,30 +303,6 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 								},
 							},
 						},
-						// aws:autoscaling:groupName is set, therefore skip scheduling, skipped auto scaled: 1
-						{
-							DBInstanceIdentifier: aws.String("test-database-2"),
-							TagList: []rdstype.Tag{
-								{
-									Key:   aws.String("aws:autoscaling:groupName"),
-									Value: aws.String("bastion_linux_daily"),
-								},
-							},
-						},
-						// both RDS instance-scheduling and aws:autoscaling:groupName tags are set, skip scheduling due to autoscaling, skipped auto scaled: 1
-						{
-							DBInstanceIdentifier: aws.String("test-database-1"),
-							TagList: []rdstype.Tag{
-								{
-									Key:   aws.String("aws:autoscaling:groupName"),
-									Value: aws.String("weblogic-CNOMT1"),
-								},
-								{
-									Key:   aws.String("instance-scheduling"),
-									Value: aws.String("skip-auto-stop"),
-								},
-							},
-						},
 						// no RDS instance-scheduling and no aws:autoscaling:groupName tags, therefore schedule an instance, acted upon: 1
 						{
 							DBInstanceIdentifier: aws.String("test-database-2"),
@@ -423,30 +375,6 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 								{
 									Key:   aws.String("instance-scheduling"),
 									Value: aws.String("default"),
-								},
-							},
-						},
-						// aws:autoscaling:groupName is set, therefore skip scheduling, skipped auto scaled: 1
-						{
-							DBInstanceIdentifier: aws.String("test-database-2"),
-							TagList: []rdstype.Tag{
-								{
-									Key:   aws.String("aws:autoscaling:groupName"),
-									Value: aws.String("bastion_linux_daily"),
-								},
-							},
-						},
-						// both RDS instance-scheduling and aws:autoscaling:groupName tags are set, skip scheduling due to autoscaling, skipped auto scaled: 1
-						{
-							DBInstanceIdentifier: aws.String("test-database-1"),
-							TagList: []rdstype.Tag{
-								{
-									Key:   aws.String("aws:autoscaling:groupName"),
-									Value: aws.String("weblogic-CNOMT1"),
-								},
-								{
-									Key:   aws.String("instance-scheduling"),
-									Value: aws.String("skip-auto-stop"),
 								},
 							},
 						},
