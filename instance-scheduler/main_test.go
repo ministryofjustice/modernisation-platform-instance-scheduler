@@ -286,7 +286,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 				},
 			},
 			action:        "Test",
-			expectedCount: RDSInstanceCount{8, 1, 0},
+			expectedCount: RDSInstanceCount{6, 1},
 		},
 		{
 			testTitle: "RDS testing Stop action",
@@ -361,7 +361,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 				},
 			},
 			action:        "Stop",
-			expectedCount: RDSInstanceCount{8, 1, 0},
+			expectedCount: RDSInstanceCount{6, 1},
 		},
 		{
 			testTitle: "RDS testing Start action",
@@ -436,7 +436,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 				},
 			},
 			action:        "Start",
-			expectedCount: RDSInstanceCount{8, 1, 0},
+			expectedCount: RDSInstanceCount{6, 1},
 		},
 		{
 			testTitle: "RDS testing if action input is not case sensitive when passing start",
@@ -467,7 +467,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 				},
 			},
 			action:        "Start",
-			expectedCount: RDSInstanceCount{2, 0, 0},
+			expectedCount: RDSInstanceCount{2, 0},
 		},
 		{
 			// aws:autoscaling:groupName tag is set, but action is an empty string, therefore RDSInstanceCount: {0,0,0}
@@ -488,7 +488,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 				},
 			},
 			action:        "",
-			expectedCount: RDSInstanceCount{0, 0, 0},
+			expectedCount: RDSInstanceCount{0, 0},
 		},
 		{
 			// RDS instance-scheduling = default, but action value is invalid, therefore RDSInstanceCount: {0,0,0}
@@ -509,7 +509,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 				},
 			},
 			action:        "invalid",
-			expectedCount: RDSInstanceCount{0, 0, 0},
+			expectedCount: RDSInstanceCount{0, 0},
 		},
 	}
 
