@@ -214,7 +214,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 		expectedCount RDSInstanceCount
 	}{
 		{
-			testTitle: "RDS testing Stop action",
+			testTitle: "RDS testing Test action",
 			client: &mockIRDSInstancesAPI{
 				DescribeDBInstancesOutput: &rds.DescribeDBInstancesOutput{
 					DBInstances: []rdstype.DBInstance{

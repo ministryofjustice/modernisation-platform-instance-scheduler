@@ -171,9 +171,8 @@ type InstanceCount struct {
 }
 
 type RDSInstanceCount struct {
-	RDSActedUpon         int
-	RDSSkipped           int
-	RDSSkippedAutoScaled int
+	RDSActedUpon int
+	RDSSkipped   int
 }
 
 // IEC2InstancesAPI
@@ -447,7 +446,6 @@ type InstanceSchedulingResponse struct {
 	SkippedAutoScaled     int      `json:"skipped_auto_scaled"`
 	RDSActedUpon          int      `json:"rds_acted_upon"`
 	RDSSkipped            int      `json:"rds_skipped"`
-	RDSSkippedAutoScaled  int      `json:"rds_skipped_auto_scaled"`
 }
 
 func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse, error) {
@@ -482,13 +480,12 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 		SkippedAutoScaled:     0,
 		RDSActedUpon:          0,
 		RDSSkipped:            0,
-		RDSSkippedAutoScaled:  0,
 	}
 	for accName, accId := range accounts {
 		ec2Client := getEc2ClientForMemberAccount(cfg, accName, accId)
 		rdsClient := getRDSClientForMemberAccount(cfg, accName, accId)
 
-		if ec2Client == nil && rdsClient == nil {
+		if ec2Client == nil || rdsClient == nil {
 			nonMemberAccountNames = append(nonMemberAccountNames, accName)
 		} else {
 			memberAccountNames = append(memberAccountNames, accName)
@@ -501,7 +498,6 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 			rdsCount := StopStartTestRDSInstancesInMemberAccount(rdsClient, request.Action)
 			totalCount.RDSActedUpon += rdsCount.RDSActedUpon
 			totalCount.RDSSkipped += rdsCount.RDSSkipped
-			totalCount.RDSSkippedAutoScaled += rdsCount.RDSSkippedAutoScaled
 
 			log.Printf("END: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
 		}
@@ -525,7 +521,6 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 		SkippedAutoScaled:     totalCount.SkippedAutoScaled,
 		RDSActedUpon:          totalCount.RDSActedUpon,
 		RDSSkipped:            totalCount.RDSSkipped,
-		RDSSkippedAutoScaled:  totalCount.RDSSkippedAutoScaled,
 	}
 	bodyJson, _ := json.Marshal(body)
 	return events.APIGatewayProxyResponse{
