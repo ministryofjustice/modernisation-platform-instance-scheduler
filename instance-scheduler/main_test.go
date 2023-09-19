@@ -466,7 +466,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 					},
 				},
 			},
-			action:        "Start",
+			action:        "sTARt",
 			expectedCount: RDSInstanceCount{1, 1},
 		},
 		{
