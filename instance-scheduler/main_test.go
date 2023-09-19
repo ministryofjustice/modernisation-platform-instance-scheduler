@@ -422,7 +422,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 								},
 							},
 						},
-						// RDS instance-scheduling = skip-auto-start, therefore skip auto start, but not stop, acted upon: 1
+						// RDS instance-scheduling = skip-auto-start, therefore skip auto start, skipped: 1
 						{
 							DBInstanceIdentifier: aws.String("test-database-6"),
 							TagList: []rdstype.Tag{
