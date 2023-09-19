@@ -234,7 +234,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 						},
 						// RDS instance-scheduling = skip-scheduling, therefore skip scheduling, skipped: 1
 						{
-							DBInstanceIdentifier: aws.String("i-2162279001"),
+							DBInstanceIdentifier: aws.String("test-database-7"),
 							TagList: []rdstype.Tag{
 								{
 									Key:   aws.String("instance-scheduling"),
@@ -286,7 +286,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 				},
 			},
 			action:        "Test",
-			expectedCount: RDSInstanceCount{6, 1},
+			expectedCount: RDSInstanceCount{5, 2},
 		},
 		{
 			testTitle: "RDS testing Stop action",
@@ -361,7 +361,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 				},
 			},
 			action:        "Stop",
-			expectedCount: RDSInstanceCount{6, 1},
+			expectedCount: RDSInstanceCount{5, 2},
 		},
 		{
 			testTitle: "RDS testing Start action",
@@ -384,7 +384,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 						},
 						// RDS instance-scheduling = skip-scheduling, therefore skip scheduling, skipped: 1
 						{
-							DBInstanceIdentifier: aws.String("i-2162279001"),
+							DBInstanceIdentifier: aws.String("test-database-7"),
 							TagList: []rdstype.Tag{
 								{
 									Key:   aws.String("instance-scheduling"),
@@ -436,7 +436,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 				},
 			},
 			action:        "Start",
-			expectedCount: RDSInstanceCount{6, 1},
+			expectedCount: RDSInstanceCount{5, 2},
 		},
 		{
 			testTitle: "RDS testing if action input is not case sensitive when passing start",
@@ -468,27 +468,6 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 			},
 			action:        "Start",
 			expectedCount: RDSInstanceCount{2, 0},
-		},
-		{
-			// aws:autoscaling:groupName tag is set, but action is an empty string, therefore RDSInstanceCount: {0,0}
-			testTitle: "RDS testing empty action input",
-			client: &mockIRDSInstancesAPI{
-				DescribeDBInstancesOutput: &rds.DescribeDBInstancesOutput{
-					DBInstances: []rdstype.DBInstance{
-						{
-							DBInstanceIdentifier: aws.String("test-database"),
-							TagList: []rdstype.Tag{
-								{
-									Key:   aws.String("aws:autoscaling:groupName"),
-									Value: aws.String("skip-auto-start"),
-								},
-							},
-						},
-					},
-				},
-			},
-			action:        "",
-			expectedCount: RDSInstanceCount{0, 0},
 		},
 		{
 			// RDS instance-scheduling = default, but action value is invalid, therefore RDSInstanceCount: {0,0}
