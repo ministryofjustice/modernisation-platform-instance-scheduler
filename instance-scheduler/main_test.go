@@ -491,7 +491,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 			expectedCount: RDSInstanceCount{0, 0},
 		},
 		{
-			// RDS instance-scheduling = default, but action value is invalid, therefore RDSInstanceCount: {0,0,0}
+			// RDS instance-scheduling = default, but action value is invalid, therefore RDSInstanceCount: {0,0}
 			testTitle: "RDS testing invalid action input",
 			client: &mockIRDSInstancesAPI{
 				DescribeDBInstancesOutput: &rds.DescribeDBInstancesOutput{
