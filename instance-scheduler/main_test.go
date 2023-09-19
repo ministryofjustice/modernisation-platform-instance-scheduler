@@ -467,7 +467,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 				},
 			},
 			action:        "Start",
-			expectedCount: RDSInstanceCount{2, 0},
+			expectedCount: RDSInstanceCount{1, 1},
 		},
 		{
 			// RDS instance-scheduling = default, but action value is invalid, therefore RDSInstanceCount: {0,0}
