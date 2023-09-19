@@ -370,6 +370,19 @@ func StopStartTestRDSInstancesInMemberAccount(rdsClient IRDSInstancesAPI, action
 				log.Printf("Successfully tested skipping instance with Id %v\n", *rdsInstance.DBInstanceIdentifier)
 				RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
 			}
+		} else if instanceSchedulingTag == "skip-auto-start" {
+			if action == "stop" {
+				log.Print(actedUponMessage)
+				RDSinstancesActedUpon = append(RDSinstancesActedUpon, *rdsInstance.DBInstanceIdentifier)
+				stopRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
+			} else if action == "start" {
+				log.Print(skippedMessage)
+				RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
+			} else if action == "test" {
+				log.Printf("Successfully tested skipping instance with Id %v\n", *rdsInstance.DBInstanceIdentifier)
+				RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
+			}
+
 		} else { // if instance-scheduling tag is missing, or the value of the tag either default, not valid or empty the RDS instance will be actioned
 			log.Print(actedUponMessage)
 			RDSinstancesActedUpon = append(RDSinstancesActedUpon, *rdsInstance.DBInstanceIdentifier)
