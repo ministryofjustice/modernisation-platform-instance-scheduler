@@ -360,7 +360,6 @@ func StopStartTestRDSInstancesInMemberAccount(rdsClient IRDSInstancesAPI, action
 			RDSinstancesActedUpon = append(RDSinstancesActedUpon, *rdsInstance.DBInstanceIdentifier)
 
 			if action == "stop" {
-
 				stopRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
 			} else if action == "start" {
 				startRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
