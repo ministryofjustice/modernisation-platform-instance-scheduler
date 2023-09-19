@@ -262,7 +262,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 								},
 							},
 						},
-						// RDS instance-scheduling = skip-auto-stop, therefore skip auto stop, but not test, acted upon: 1
+						// RDS instance-scheduling = skip-auto-stop, therefore skip auto stop,  skipped: 1
 						{
 							DBInstanceIdentifier: aws.String("test-database-5"),
 							TagList: []rdstype.Tag{
@@ -272,7 +272,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 								},
 							},
 						},
-						// RDS instance-scheduling = skip-auto-start, therefore skip auto start, but not test, acted upon: 1
+						// RDS instance-scheduling = skip-auto-start, therefore skip auto start, skipped: 1
 						{
 							DBInstanceIdentifier: aws.String("test-database-6"),
 							TagList: []rdstype.Tag{
@@ -286,7 +286,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 				},
 			},
 			action:        "Test",
-			expectedCount: RDSInstanceCount{5, 2},
+			expectedCount: RDSInstanceCount{4, 3},
 		},
 		{
 			testTitle: "RDS testing Stop action",
@@ -459,7 +459,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 							TagList: []rdstype.Tag{
 								{
 									Key:   aws.String("instance-scheduling"),
-									Value: aws.String("skip-auto-start"),
+									Value: aws.String("skip-auto-stop"),
 								},
 							},
 						},
