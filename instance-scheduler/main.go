@@ -352,6 +352,9 @@ func StopStartTestRDSInstancesInMemberAccount(rdsClient IRDSInstancesAPI, action
 		actedUponMessage := fmt.Sprintf("%v instance %v %v\n", action, *rdsInstance.DBInstanceIdentifier, instanceSchedulingTagDescr)
 		skippedMessage := fmt.Sprintf("Skipped instance %v %v\n", *rdsInstance.DBInstanceIdentifier, instanceSchedulingTagDescr)
 
+		// Tag key: instance-scheduling
+		// Valid values: default (same as absence of tag), skip-scheduling, skip-auto-stop, skip-auto-start
+
 		if instanceSchedulingTag == "skip-scheduling" {
 			log.Print(skippedMessage)
 			RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
