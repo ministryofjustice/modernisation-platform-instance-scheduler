@@ -470,7 +470,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 			expectedCount: RDSInstanceCount{2, 0},
 		},
 		{
-			// aws:autoscaling:groupName tag is set, but action is an empty string, therefore RDSInstanceCount: {0,0,0}
+			// aws:autoscaling:groupName tag is set, but action is an empty string, therefore RDSInstanceCount: {0,0}
 			testTitle: "RDS testing empty action input",
 			client: &mockIRDSInstancesAPI{
 				DescribeDBInstancesOutput: &rds.DescribeDBInstancesOutput{
@@ -491,7 +491,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 			expectedCount: RDSInstanceCount{0, 0},
 		},
 		{
-			// RDS instance-scheduling = default, but action value is invalid, therefore RDSInstanceCount: {0,0,0}
+			// RDS instance-scheduling = default, but action value is invalid, therefore RDSInstanceCount: {0,0}
 			testTitle: "RDS testing invalid action input",
 			client: &mockIRDSInstancesAPI{
 				DescribeDBInstancesOutput: &rds.DescribeDBInstancesOutput{
@@ -730,7 +730,7 @@ func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
 										},
 									},
 								},
-								// DBinstance-scheduling = skip-auto-start, therefore skip auto start, but not stop, acted upon: 1
+								// instance-scheduling = skip-auto-start, therefore skip auto start, but not stop, acted upon: 1
 								{
 									InstanceId: aws.String("i-9262279100"),
 									Tags: []ec2type.Tag{
