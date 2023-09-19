@@ -228,7 +228,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 								},
 							},
 						},
-						// no RDS instance-scheduling and no aws:autoscaling:groupName tags, therefore schedule an instance, acted upon: 1
+						// no RDS instance-scheduling tag set, therefore schedule an instance, acted upon: 1
 						{
 							DBInstanceIdentifier: aws.String("test-database-2"),
 						},
