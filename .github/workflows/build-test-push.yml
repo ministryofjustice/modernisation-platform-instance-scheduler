@@ -77,7 +77,7 @@ jobs:
         run: sam package --image-repository $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo --output-template-file packaged-template.yaml
       - name: Add the `latest` tag to the container image
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        run: docker tag instanceschedulerfunction:1.0 $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:latest
+        run: docker tag instanceschedulerfunction:1.2 $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:latest
       - name: Login to ECR
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com
