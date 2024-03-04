@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.49.1
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.1
 	github.com/aws/smithy-go v1.20.1
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 )
 
 require (
