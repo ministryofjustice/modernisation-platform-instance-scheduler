@@ -27,16 +27,7 @@ func StopStartTestRDSInstancesInMemberAccount(rdsClient IRDSInstancesAPI, action
 	action = strings.ToLower(action)
 	rdscount := &RDSInstanceCount{RDSActedUpon: 0, RDSSkipped: 0}
 
-	switch action {
-	case "start", "stop", "test":
-		break
-	default:
-		log.Print("ERROR: Invalid Action. Must be one of 'start' 'stop' 'test'")
-		return rdscount
-	}
-
 	result, err := rdsClient.DescribeDBInstances(context.TODO(), &rds.DescribeDBInstancesInput{})
-
 	if err != nil {
 		log.Print("ERROR: Could not retrieve information about Amazon RDS instances in member account:\n", err)
 		return rdscount

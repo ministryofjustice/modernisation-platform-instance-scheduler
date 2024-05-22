@@ -105,7 +105,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 					},
 				},
 			},
-			action:        "Test",
+			action:        "test",
 			expectedCount: RDSInstanceCount{4, 3},
 		},
 		{
@@ -180,7 +180,7 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 					},
 				},
 			},
-			action:        "Stop",
+			action:        "stop",
 			expectedCount: RDSInstanceCount{5, 2},
 		},
 		{
@@ -255,60 +255,8 @@ func TestStopStartTestRDSInstancesInMemberAccount(t *testing.T) {
 					},
 				},
 			},
-			action:        "Start",
+			action:        "start",
 			expectedCount: RDSInstanceCount{5, 2},
-		},
-		{
-			testTitle: "RDS testing if action input is not case sensitive when passing start",
-			client: &mockIRDSInstancesAPI{
-				DescribeDBInstancesOutput: &rds.DescribeDBInstancesOutput{
-					DBInstances: []rdstype.DBInstance{
-						// RDS instance-scheduling = skip-auto-start, therefore skip auto start, skipped: 1
-						{
-							DBInstanceIdentifier: aws.String("test-database"),
-							TagList: []rdstype.Tag{
-								{
-									Key:   aws.String("instance-scheduling"),
-									Value: aws.String("skip-auto-start"),
-								},
-							},
-						},
-						// instance-scheduling = skip-auto-stop, therefore skip auto stop, but not start, acted upon: 1
-						{
-							DBInstanceIdentifier: aws.String("test-database-2"),
-							TagList: []rdstype.Tag{
-								{
-									Key:   aws.String("instance-scheduling"),
-									Value: aws.String("skip-auto-stop"),
-								},
-							},
-						},
-					},
-				},
-			},
-			action:        "sTARt",
-			expectedCount: RDSInstanceCount{1, 1},
-		},
-		{
-			// RDS instance-scheduling = default, but action value is invalid, therefore RDSInstanceCount: {0,0}
-			testTitle: "RDS testing invalid action input",
-			client: &mockIRDSInstancesAPI{
-				DescribeDBInstancesOutput: &rds.DescribeDBInstancesOutput{
-					DBInstances: []rdstype.DBInstance{
-						{
-							DBInstanceIdentifier: aws.String("test-database"),
-							TagList: []rdstype.Tag{
-								{
-									Key:   aws.String("instance-scheduling"),
-									Value: aws.String("default"),
-								},
-							},
-						},
-					},
-				},
-			},
-			action:        "invalid",
-			expectedCount: RDSInstanceCount{0, 0},
 		},
 	}
 

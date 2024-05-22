@@ -32,7 +32,12 @@ type InstanceSchedulingResponse struct {
 
 func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse, error) {
 	log.Printf("BEGIN: Instance scheduling v%v\n", INSTANCE_SCHEDULER_VERSION)
-	log.Printf("Action=%v\n", request.Action)
+
+	action, err := parseAction(request.Action)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	skipAccounts := os.Getenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS")
 	log.Printf("INSTANCE_SCHEDULING_SKIP_ACCOUNTS=%v\n", skipAccounts)
 
@@ -72,12 +77,12 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 		} else {
 			memberAccountNames = append(memberAccountNames, accName)
 			log.Printf("BEGIN: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
-			count := stopStartTestInstancesInMemberAccount(ec2Client, request.Action)
+			count := stopStartTestInstancesInMemberAccount(ec2Client, action)
 			totalCount.ActedUpon += count.actedUpon
 			totalCount.Skipped += count.skipped
 			totalCount.SkippedAutoScaled += count.skippedAutoScaled
 
-			rdsCount := StopStartTestRDSInstancesInMemberAccount(rdsClient, request.Action)
+			rdsCount := StopStartTestRDSInstancesInMemberAccount(rdsClient, action)
 			totalCount.RDSActedUpon += rdsCount.RDSActedUpon
 			totalCount.RDSSkipped += rdsCount.RDSSkipped
 

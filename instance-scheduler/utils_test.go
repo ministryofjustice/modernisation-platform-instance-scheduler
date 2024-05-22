@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
+	"github.com/stretchr/testify/assert"
 )
 
 type mockGetParameter func(ctx context.Context, params *ssm.GetParameterInput, optFns ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
@@ -162,6 +163,52 @@ func TestGetNonProductionAccounts(t *testing.T) {
 			got := getNonProductionAccounts(subtest.environments, subtest.skipAccounts)
 			if !reflect.DeepEqual(subtest.want, got) {
 				t.Errorf("want %v, got %v", subtest.want, got)
+			}
+		})
+	}
+}
+
+func TestParseAction(t *testing.T) {
+	tests := []struct {
+		title       string
+		action      string
+		want        string
+		expectError bool
+	}{
+		{
+			title:       "returns 'test' for `TEST`",
+			action:      "TEST",
+			want:        "test",
+			expectError: false,
+		},
+		{
+			title:       "returns 'start' for `START`",
+			action:      "START",
+			want:        "start",
+			expectError: false,
+		},
+		{
+			title:       "returns 'stop' for `STOP`",
+			action:      "STOP",
+			want:        "stop",
+			expectError: false,
+		},
+		{
+			title:       "returns empty string and error for invalid action`",
+			action:      "Invalid action name! 😱",
+			want:        "",
+			expectError: true,
+		},
+	}
+
+	for _, subtest := range tests {
+		t.Run(subtest.title, func(t *testing.T) {
+			got, err := parseAction(subtest.action)
+			assert.Equal(t, subtest.want, got)
+			if subtest.expectError {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
 			}
 		})
 	}
