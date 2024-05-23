@@ -33,9 +33,24 @@ type InstanceSchedulingResponse struct {
 func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse, error) {
 	log.Printf("BEGIN: Instance scheduling v%v\n", INSTANCE_SCHEDULER_VERSION)
 
+	instanceSchedulingResponse := &InstanceSchedulingResponse{
+		Action:                request.Action,
+		MemberAccountNames:    []string{},
+		NonMemberAccountNames: []string{},
+		ActedUpon:             0,
+		Skipped:               0,
+		SkippedAutoScaled:     0,
+		RDSActedUpon:          0,
+		RDSSkipped:            0,
+	}
+
 	action, err := parseAction(request.Action)
 	if err != nil {
-		log.Fatal(err)
+		body, _ := json.Marshal(instanceSchedulingResponse)
+		return events.APIGatewayProxyResponse{
+			Body:       string(body),
+			StatusCode: 400,
+		}, err
 	}
 
 	skipAccounts := os.Getenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS")
@@ -58,16 +73,6 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 	accounts := getNonProductionAccounts(environments, skipAccounts)
 	memberAccountNames := []string{}
 	nonMemberAccountNames := []string{}
-	totalCount := &InstanceSchedulingResponse{
-		Action:                request.Action,
-		MemberAccountNames:    []string{},
-		NonMemberAccountNames: []string{},
-		ActedUpon:             0,
-		Skipped:               0,
-		SkippedAutoScaled:     0,
-		RDSActedUpon:          0,
-		RDSSkipped:            0,
-	}
 	for accName, accId := range accounts {
 		ec2Client := getEc2ClientForMemberAccount(cfg, accName, accId)
 		rdsClient := getRDSClientForMemberAccount(cfg, accName, accId)
@@ -78,13 +83,13 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 			memberAccountNames = append(memberAccountNames, accName)
 			log.Printf("BEGIN: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
 			count := stopStartTestInstancesInMemberAccount(ec2Client, action)
-			totalCount.ActedUpon += count.actedUpon
-			totalCount.Skipped += count.skipped
-			totalCount.SkippedAutoScaled += count.skippedAutoScaled
+			instanceSchedulingResponse.ActedUpon += count.actedUpon
+			instanceSchedulingResponse.Skipped += count.skipped
+			instanceSchedulingResponse.SkippedAutoScaled += count.skippedAutoScaled
 
 			rdsCount := StopStartTestRDSInstancesInMemberAccount(rdsClient, action)
-			totalCount.RDSActedUpon += rdsCount.RDSActedUpon
-			totalCount.RDSSkipped += rdsCount.RDSSkipped
+			instanceSchedulingResponse.RDSActedUpon += rdsCount.RDSActedUpon
+			instanceSchedulingResponse.RDSSkipped += rdsCount.RDSSkipped
 
 			log.Printf("END: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
 		}
@@ -99,19 +104,9 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 		log.Printf("Ignored %v non-member accounts lacking InstanceSchedulerAccess role: %v\n", len(nonMemberAccountNames), nonMemberAccountNames)
 	}
 
-	body := &InstanceSchedulingResponse{
-		Action:                request.Action,
-		MemberAccountNames:    memberAccountNames,
-		NonMemberAccountNames: nonMemberAccountNames,
-		ActedUpon:             totalCount.ActedUpon,
-		Skipped:               totalCount.Skipped,
-		SkippedAutoScaled:     totalCount.SkippedAutoScaled,
-		RDSActedUpon:          totalCount.RDSActedUpon,
-		RDSSkipped:            totalCount.RDSSkipped,
-	}
-	bodyJson, _ := json.Marshal(body)
+	body, _ := json.Marshal(instanceSchedulingResponse)
 	return events.APIGatewayProxyResponse{
-		Body:       string(bodyJson),
+		Body:       string(body),
 		StatusCode: 200,
 	}, nil
 }
