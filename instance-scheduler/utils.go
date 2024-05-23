@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"strings"
 
@@ -59,4 +60,15 @@ func getNonProductionAccounts(environments string, skipAccountNames string) map[
 		}
 	}
 	return accounts
+}
+
+func parseAction(action string) (string, error) {
+	log.Printf("Action=%v\n", action)
+	actionAsLower := strings.ToLower(action)
+
+	switch actionAsLower {
+	case "test", "start", "stop":
+		return actionAsLower, nil
+	}
+	return "", errors.New("ERROR: Invalid Action. Must be one of 'start' 'stop' 'test'")
 }

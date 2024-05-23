@@ -140,7 +140,7 @@ func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
 					},
 				},
 			},
-			action:        "Test",
+			action:        "test",
 			expectedCount: InstanceCount{4, 3, 2},
 		},
 		{
@@ -249,7 +249,7 @@ func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
 					},
 				},
 			},
-			action:        "Stop",
+			action:        "stop",
 			expectedCount: InstanceCount{5, 2, 2},
 		},
 		{
@@ -358,96 +358,8 @@ func TestStopStartTestInstancesInMemberAccount(t *testing.T) {
 					},
 				},
 			},
-			action:        "Start",
-			expectedCount: InstanceCount{5, 2, 2},
-		},
-		{
-			testTitle: "testing if action input is not case sensitive when passing start",
-			client: &mockIEC2InstancesAPI{
-				DescribeInstancesOutput: &ec2.DescribeInstancesOutput{
-					Reservations: []ec2type.Reservation{
-						{
-							ReservationId: aws.String("r-0899f7abdd9be06d8"),
-							Instances: []ec2type.Instance{
-								// instance-scheduling = skip-auto-start, therefore skip auto start, skipped: 1
-								{
-									InstanceId: aws.String("i-9262279981"),
-									Tags: []ec2type.Tag{
-										{
-											Key:   aws.String("instance-scheduling"),
-											Value: aws.String("skip-auto-start"),
-										},
-									},
-								},
-								// instance-scheduling = skip-auto-stop, therefore skip auto stop, but not start, acted upon: 1
-								{
-									InstanceId: aws.String("i-1265579989"),
-									Tags: []ec2type.Tag{
-										{
-											Key:   aws.String("instance-scheduling"),
-											Value: aws.String("skip-auto-stop"),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
 			action:        "start",
-			expectedCount: InstanceCount{1, 1, 0},
-		},
-		{
-			// aws:autoscaling:groupName tag is set, but action is an empty string, therefore InstanceCount: {0,0,0}
-			testTitle: "testing empty action input",
-			client: &mockIEC2InstancesAPI{
-				DescribeInstancesOutput: &ec2.DescribeInstancesOutput{
-					Reservations: []ec2type.Reservation{
-						{
-							ReservationId: aws.String("r-0899f7abdd9be06d8"),
-							Instances: []ec2type.Instance{
-								{
-									InstanceId: aws.String("i-6567788909"),
-									Tags: []ec2type.Tag{
-										{
-											Key:   aws.String("aws:autoscaling:groupName"),
-											Value: aws.String("bastion-linux"),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			action:        "",
-			expectedCount: InstanceCount{0, 0, 0},
-		},
-		{
-			// instance-scheduling = default, but action value is invalid, therefore InstanceCount: {0,0,0}
-			testTitle: "testing invalid action input",
-			client: &mockIEC2InstancesAPI{
-				DescribeInstancesOutput: &ec2.DescribeInstancesOutput{
-					Reservations: []ec2type.Reservation{
-						{
-							ReservationId: aws.String("r-0899f7abdd9be06d8"),
-							Instances: []ec2type.Instance{
-								{
-									InstanceId: aws.String("i-1265579989"),
-									Tags: []ec2type.Tag{
-										{
-											Key:   aws.String("instance-scheduling"),
-											Value: aws.String("default"),
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			action:        "invalid",
-			expectedCount: InstanceCount{0, 0, 0},
+			expectedCount: InstanceCount{5, 2, 2},
 		},
 	}
 
