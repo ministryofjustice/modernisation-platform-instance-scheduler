@@ -71,16 +71,14 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 	environments := getSecret(secretsManagerClient, secretId)
 
 	accounts := getNonProductionAccounts(environments, skipAccounts)
-	memberAccountNames := []string{}
-	nonMemberAccountNames := []string{}
 	for accName, accId := range accounts {
 		ec2Client := getEc2ClientForMemberAccount(cfg, accName, accId)
 		rdsClient := getRDSClientForMemberAccount(cfg, accName, accId)
 
 		if ec2Client == nil || rdsClient == nil {
-			nonMemberAccountNames = append(nonMemberAccountNames, accName)
+			instanceSchedulingResponse.NonMemberAccountNames = append(instanceSchedulingResponse.NonMemberAccountNames, accName)
 		} else {
-			memberAccountNames = append(memberAccountNames, accName)
+			instanceSchedulingResponse.MemberAccountNames = append(instanceSchedulingResponse.MemberAccountNames, accName)
 			log.Printf("BEGIN: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
 			count := stopStartTestInstancesInMemberAccount(ec2Client, action)
 			instanceSchedulingResponse.ActedUpon += count.actedUpon
@@ -95,13 +93,13 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 		}
 	}
 
-	if len(memberAccountNames) > 0 {
-		log.Printf("END: Instance scheduling for %v member accounts: %v\n", len(memberAccountNames), memberAccountNames)
+	if len(instanceSchedulingResponse.MemberAccountNames) > 0 {
+		log.Printf("END: Instance scheduling for %v member accounts: %v\n", len(instanceSchedulingResponse.MemberAccountNames), instanceSchedulingResponse.MemberAccountNames)
 	} else {
 		log.Println("WARN: END: Instance scheduling: No member account was found!")
 	}
-	if len(nonMemberAccountNames) > 0 {
-		log.Printf("Ignored %v non-member accounts lacking InstanceSchedulerAccess role: %v\n", len(nonMemberAccountNames), nonMemberAccountNames)
+	if len(instanceSchedulingResponse.NonMemberAccountNames) > 0 {
+		log.Printf("Ignored %v non-member accounts lacking InstanceSchedulerAccess role: %v\n", len(instanceSchedulingResponse.NonMemberAccountNames), instanceSchedulingResponse.NonMemberAccountNames)
 	}
 
 	body, _ := json.Marshal(instanceSchedulingResponse)
