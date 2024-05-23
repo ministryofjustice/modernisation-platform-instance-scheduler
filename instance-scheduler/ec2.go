@@ -66,45 +66,46 @@ func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action strin
 			if instanceIsPartOfAutoScalingGroup {
 				log.Print(skippedAutoScaledMessage)
 				skippedAutoScaledInstances = append(skippedAutoScaledInstances, *i.InstanceId)
-			} else if instanceSchedulingTag == "skip-scheduling" {
+				continue
+			}
+			if instanceSchedulingTag == "skip-scheduling" {
 				log.Print(skippedMessage)
 				skippedInstances = append(skippedInstances, *i.InstanceId)
-			} else if instanceSchedulingTag == "skip-auto-stop" {
-				if action == "stop" {
-					log.Print(skippedMessage)
-					skippedInstances = append(skippedInstances, *i.InstanceId)
-				} else if action == "start" {
-					log.Print(actedUponMessage)
-					instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
-					startInstance(client, *i.InstanceId)
-				} else if action == "test" {
-					log.Printf("Successfully tested skipping instance with Id %v\n", *i.InstanceId)
-					skippedInstances = append(skippedInstances, *i.InstanceId)
-				}
-			} else if instanceSchedulingTag == "skip-auto-start" {
-				if action == "stop" {
-					log.Print(actedUponMessage)
-					instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
-					stopInstance(client, *i.InstanceId)
-				} else if action == "start" {
-					log.Print(skippedMessage)
-					skippedInstances = append(skippedInstances, *i.InstanceId)
-				} else if action == "test" {
-					log.Printf("Successfully tested skipping instance with Id %v\n", *i.InstanceId)
-					skippedInstances = append(skippedInstances, *i.InstanceId)
-				}
-			} else { // if instance-scheduling tag is missing, or the value of the tag either default, not valid or empty the instance will be actioned
-				log.Print(actedUponMessage)
-				instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
-				if action == "stop" {
-					stopInstance(client, *i.InstanceId)
-				} else if action == "start" {
-					startInstance(client, *i.InstanceId)
-				} else if action == "test" {
-					log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
-				}
+				continue
 			}
 
+			if action == "test" {
+				if instanceSchedulingTag == "skip-auto-stop" || instanceSchedulingTag == "skip-auto-start" {
+					log.Print(skippedMessage)
+					skippedInstances = append(skippedInstances, *i.InstanceId)
+					continue
+				}
+				instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
+				log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
+				continue
+			}
+			if action == "stop" {
+				if instanceSchedulingTag == "skip-auto-stop" {
+					log.Print(skippedMessage)
+					skippedInstances = append(skippedInstances, *i.InstanceId)
+					continue
+				}
+				instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
+				stopInstance(client, *i.InstanceId)
+				log.Print(actedUponMessage)
+				continue
+			}
+			if action == "start" {
+				if instanceSchedulingTag == "skip-auto-start" {
+					log.Print(skippedMessage)
+					skippedInstances = append(skippedInstances, *i.InstanceId)
+					continue
+				}
+				instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
+				startInstance(client, *i.InstanceId)
+				log.Print(actedUponMessage)
+				continue
+			}
 		}
 	}
 
