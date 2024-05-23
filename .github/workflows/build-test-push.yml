@@ -4,23 +4,22 @@ on:
     branches:
       - main
     paths:
-      - 'instance-scheduler/**'
-      - '.github/workflows/build-test-push.yml'
-      - '**.yaml'
-      - '**.yml'
-      - '**.json'
-      - 'Makefile'
+      - "instance-scheduler/**"
+      - ".github/workflows/build-test-push.yml"
+      - "**.yaml"
+      - "**.yml"
+      - "**.json"
+      - "Makefile"
   pull_request:
     branches:
       - main
-    types: [ opened, edited, reopened, synchronize ]
     paths:
-      - 'instance-scheduler/**'
-      - '.github/workflows/build-test-push.yml'
-      - '**.yaml'
-      - '**.yml'
-      - '**.json'
-      - 'Makefile'
+      - "instance-scheduler/**"
+      - ".github/workflows/build-test-push.yml"
+      - "**.yaml"
+      - "**.yml"
+      - "**.json"
+      - "Makefile"
   workflow_dispatch:
 env:
   AWS_REGION: "eu-west-2"
@@ -45,7 +44,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
         with:
-          go-version: '>=1.18'
+          go-version: ">=1.18"
       - uses: aws-actions/setup-sam@342dcc4899c07fedf41f91cbb1e6c68925a85d37 # v2
       - name: SAM Validate
         run: |
