@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"log"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2type "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
 )
@@ -27,108 +29,82 @@ type IEC2InstancesAPI interface {
 }
 
 func stopStartTestInstancesInMemberAccount(client IEC2InstancesAPI, action string) *InstanceCount {
-	count := &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
+	if action == "stop" {
+		return stopEc2Instances(client)
+	}
+	if action == "start" {
+		return startEc2Instances(client)
+	}
+	if action == "test" {
+		return testEc2Instances(client)
+	}
+	log.Fatalf("Invalid action: [ %v ]", action)
+	return nil
+}
 
+func parseInstanceTags(instance ec2type.Instance, skippedInstances []string, skippedAutoScaledInstances []string) (string, bool, []string, []string) {
+	var instanceSchedulingTag string
+	isPartOfAutoScalingGroup := false
+	isSkipSchedulingTag := false
+	for _, tag := range instance.Tags {
+		if *tag.Key == "aws:autoscaling:groupName" {
+			log.Printf("Skip instance because aws:autoscaling:groupName tag because it is part of an Auto Scaling group\n")
+			skippedAutoScaledInstances = append(skippedAutoScaledInstances, *instance.InstanceId)
+			isPartOfAutoScalingGroup = true
+		}
+		if *tag.Key == "instance-scheduling" {
+			instanceSchedulingTag = *tag.Value
+		}
+		if *tag.Key == "instance-scheduling" && *tag.Value == "skip-scheduling" {
+			log.Printf("Skip instance because instance-scheduling tag having value 'skip-scheduling'\n")
+			skippedInstances = append(skippedInstances, *instance.InstanceId)
+			isSkipSchedulingTag = true
+		}
+	}
+
+	isSkippable := bool(isPartOfAutoScalingGroup || isSkipSchedulingTag)
+	return instanceSchedulingTag, isSkippable, skippedInstances, skippedAutoScaledInstances
+}
+
+func startEc2Instances(client IEC2InstancesAPI) *InstanceCount {
 	result, err := client.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{})
 	if err != nil {
 		log.Println("ERROR: Could not retrieve information about Amazon EC2 instances in member account:", err)
-		return count
+		return &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
 	}
 
 	instancesActedUpon := []string{}
 	skippedInstances := []string{}
 	skippedAutoScaledInstances := []string{}
 	for _, r := range result.Reservations {
+		log.Printf("INFO: Reservation ID: [ %v ]\n", *r.ReservationId)
 		for _, i := range r.Instances {
-			var instanceSchedulingTag string
-			instanceIsPartOfAutoScalingGroup := false
-			for _, tag := range i.Tags {
-				if *tag.Key == "aws:autoscaling:groupName" {
-					instanceIsPartOfAutoScalingGroup = true
-					break
-				} else if *tag.Key == "instance-scheduling" {
-					instanceSchedulingTag = *tag.Value
-				}
+			log.Printf("INFO: Instance ID: [ %v ]\n", *i.InstanceId)
+			instanceSchedulingTag, skipInstance, skippedInstancesModified, skippedAutoScaledInstancesModified := parseInstanceTags(i, skippedInstances, skippedAutoScaledInstances)
+			skippedInstances = skippedInstancesModified
+			skippedAutoScaledInstances = skippedAutoScaledInstancesModified
+
+			if skipInstance {
+				continue
 			}
 
-			instanceSchedulingTagDescr := fmt.Sprintf("with instance-scheduling tag having value '%v'", instanceSchedulingTag)
-			if instanceSchedulingTag == "" {
-				instanceSchedulingTagDescr = "with instance-scheduling tag being absent"
-			}
-
-			actedUponMessage := fmt.Sprintf("%v instance %v (ReservationId: %v) %v\n", action, *i.InstanceId, *r.ReservationId, instanceSchedulingTagDescr)
-			skippedMessage := fmt.Sprintf("Skipped instance %v (ReservationId: %v) %v\n", *i.InstanceId, *r.ReservationId, instanceSchedulingTagDescr)
-			skippedAutoScaledMessage := fmt.Sprintf("Skipped instance %v (ReservationId: %v) with aws:autoscaling:groupName tag because it is part of an Auto Scaling group\n", *i.InstanceId, *r.ReservationId)
-
-			// Tag key: instance-scheduling
-			// Valid values: default (same as absence of tag), skip-scheduling, skip-auto-stop, skip-auto-start
-
-			if instanceIsPartOfAutoScalingGroup {
-				log.Print(skippedAutoScaledMessage)
-				skippedAutoScaledInstances = append(skippedAutoScaledInstances, *i.InstanceId)
-			} else if instanceSchedulingTag == "skip-scheduling" {
-				log.Print(skippedMessage)
+			if instanceSchedulingTag == "skip-auto-stop" {
+				log.Printf("INFO: Skipped instance because instance-scheduling tag having value 'skip-auto-stop'\n")
 				skippedInstances = append(skippedInstances, *i.InstanceId)
-			} else if instanceSchedulingTag == "skip-auto-stop" {
-				if action == "stop" {
-					log.Print(skippedMessage)
-					skippedInstances = append(skippedInstances, *i.InstanceId)
-				} else if action == "start" {
-					log.Print(actedUponMessage)
-					instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
-					startInstance(client, *i.InstanceId)
-				} else if action == "test" {
-					log.Printf("Successfully tested skipping instance with Id %v\n", *i.InstanceId)
-					skippedInstances = append(skippedInstances, *i.InstanceId)
-				}
-			} else if instanceSchedulingTag == "skip-auto-start" {
-				if action == "stop" {
-					log.Print(actedUponMessage)
-					instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
-					stopInstance(client, *i.InstanceId)
-				} else if action == "start" {
-					log.Print(skippedMessage)
-					skippedInstances = append(skippedInstances, *i.InstanceId)
-				} else if action == "test" {
-					log.Printf("Successfully tested skipping instance with Id %v\n", *i.InstanceId)
-					skippedInstances = append(skippedInstances, *i.InstanceId)
-				}
-			} else { // if instance-scheduling tag is missing, or the value of the tag either default, not valid or empty the instance will be actioned
-				log.Print(actedUponMessage)
-				instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
-				if action == "stop" {
-					stopInstance(client, *i.InstanceId)
-				} else if action == "start" {
-					startInstance(client, *i.InstanceId)
-				} else if action == "test" {
-					log.Printf("Successfully tested instance with Id %v\n", *i.InstanceId)
-				}
+				continue
 			}
 
+			log.Printf("INFO: Stopped instance because instance-scheduling tag is absent\n")
+			instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
+			startInstance(client, *i.InstanceId)
 		}
 	}
 
-	acted := "Started"
-	if action == "stop" {
-		acted = "Stopped"
-	} else if action == "test" {
-		acted = "Tested"
-	}
-	if len(instancesActedUpon) > 0 {
-		log.Printf("%v %v instances: %v\n", acted, len(instancesActedUpon), instancesActedUpon)
-		count.actedUpon = len(instancesActedUpon)
-	} else {
-		log.Printf("WARN: No instances found to %v!\n", action)
-	}
-	if len(skippedInstances) > 0 {
-		log.Printf("Skipped %v instances due to instance-scheduling tag: %v\n", len(skippedInstances), skippedInstances)
-		count.skipped = len(skippedInstances)
-	}
-	if len(skippedAutoScaledInstances) > 0 {
-		log.Printf("Skipped %v instances due to aws:autoscaling:groupName tag: %v\n", len(skippedAutoScaledInstances), skippedAutoScaledInstances)
-		count.skippedAutoScaled = len(skippedAutoScaledInstances)
-	}
-	return count
+	log.Printf("INFO: Started %v instances: %v\n", len(instancesActedUpon), instancesActedUpon)
+	log.Printf("INFO: Skipped %v instances due to instance-scheduling tag: %v\n", len(skippedInstances), skippedInstances)
+	log.Printf("INFO: Skipped %v instances due to aws:autoscaling:groupName tag: %v\n", len(skippedAutoScaledInstances), skippedAutoScaledInstances)
+
+	return &InstanceCount{actedUpon: len(instancesActedUpon), skipped: len(skippedInstances), skippedAutoScaled: len(skippedAutoScaledInstances)}
 }
 
 func startInstance(client IEC2InstancesAPI, instanceId string) {
@@ -155,6 +131,47 @@ func startInstance(client IEC2InstancesAPI, instanceId string) {
 	}
 }
 
+func stopEc2Instances(client IEC2InstancesAPI) *InstanceCount {
+	result, err := client.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{})
+	if err != nil {
+		log.Println("ERROR: Could not retrieve information about Amazon EC2 instances in member account:", err)
+		return &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
+	}
+
+	instancesActedUpon := []string{}
+	skippedInstances := []string{}
+	skippedAutoScaledInstances := []string{}
+	for _, r := range result.Reservations {
+		log.Printf("INFO: Reservation ID: [ %v ]\n", *r.ReservationId)
+		for _, i := range r.Instances {
+			log.Printf("INFO: Instance ID: [ %v ]\n", *i.InstanceId)
+			instanceSchedulingTag, skipInstance, skippedInstancesModified, skippedAutoScaledInstancesModified := parseInstanceTags(i, skippedInstances, skippedAutoScaledInstances)
+			skippedInstances = skippedInstancesModified
+			skippedAutoScaledInstances = skippedAutoScaledInstancesModified
+
+			if skipInstance {
+				continue
+			}
+
+			if instanceSchedulingTag == "skip-auto-stop" {
+				log.Printf("INFO: Skipped instance because instance-scheduling tag having value 'skip-auto-stop'\n")
+				skippedInstances = append(skippedInstances, *i.InstanceId)
+				continue
+			}
+
+			log.Printf("INFO: Stopped instance because instance-scheduling tag is absent\n")
+			instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
+			stopInstance(client, *i.InstanceId)
+		}
+	}
+
+	log.Printf("INFO: Stopped %v instances: %v\n", len(instancesActedUpon), instancesActedUpon)
+	log.Printf("INFO: Skipped %v instances due to instance-scheduling tag: %v\n", len(skippedInstances), skippedInstances)
+	log.Printf("INFO: Skipped %v instances due to aws:autoscaling:groupName tag: %v\n", len(skippedAutoScaledInstances), skippedAutoScaledInstances)
+
+	return &InstanceCount{actedUpon: len(instancesActedUpon), skipped: len(skippedInstances), skippedAutoScaled: len(skippedAutoScaledInstances)}
+}
+
 func stopInstance(client IEC2InstancesAPI, instanceId string) {
 	input := &ec2.StopInstancesInput{
 		InstanceIds: []string{
@@ -177,6 +194,46 @@ func stopInstance(client IEC2InstancesAPI, instanceId string) {
 	} else {
 		log.Printf("ERROR: Could not stop instance: %v\n", err)
 	}
+}
+
+func testEc2Instances(client IEC2InstancesAPI) *InstanceCount {
+	result, err := client.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{})
+	if err != nil {
+		log.Println("ERROR: Could not retrieve information about Amazon EC2 instances in member account:", err)
+		return &InstanceCount{actedUpon: 0, skipped: 0, skippedAutoScaled: 0}
+	}
+
+	instancesActedUpon := []string{}
+	skippedInstances := []string{}
+	skippedAutoScaledInstances := []string{}
+	for _, r := range result.Reservations {
+		log.Printf("INFO: Reservation ID: [ %v ]\n", *r.ReservationId)
+		for _, i := range r.Instances {
+			log.Printf("INFO: Instance ID: [ %v ]\n", *i.InstanceId)
+			instanceSchedulingTag, skipInstance, skippedInstancesModified, skippedAutoScaledInstancesModified := parseInstanceTags(i, skippedInstances, skippedAutoScaledInstances)
+			skippedInstances = skippedInstancesModified
+			skippedAutoScaledInstances = skippedAutoScaledInstancesModified
+
+			if skipInstance {
+				continue
+			}
+
+			if instanceSchedulingTag == "skip-auto-stop" || instanceSchedulingTag == "skip-auto-start" {
+				log.Printf("INFO: Skipped instance because instance-scheduling tag having value 'skip-auto-start' or \n")
+				skippedInstances = append(skippedInstances, *i.InstanceId)
+				continue
+			}
+			instancesActedUpon = append(instancesActedUpon, *i.InstanceId)
+			log.Printf("INFO: Successfully tested instance with Id %v\n", *i.InstanceId)
+			continue
+		}
+	}
+
+	log.Printf("INFO: Tested %v instances: %v\n", len(instancesActedUpon), instancesActedUpon)
+	log.Printf("INFO: Skipped %v instances due to instance-scheduling tag: %v\n", len(skippedInstances), skippedInstances)
+	log.Printf("INFO: Skipped %v instances due to aws:autoscaling:groupName tag: %v\n", len(skippedAutoScaledInstances), skippedAutoScaledInstances)
+
+	return &InstanceCount{actedUpon: len(instancesActedUpon), skipped: len(skippedInstances), skippedAutoScaled: len(skippedAutoScaledInstances)}
 }
 
 func getEc2ClientForMemberAccount(cfg aws.Config, accountName string, accountId string) IEC2InstancesAPI {
