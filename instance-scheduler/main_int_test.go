@@ -16,7 +16,8 @@ func TestHandler(t *testing.T) {
 		// lacking the InstanceSchedulerAccess role, but they have the '-development' suffix typically present in member accounts.
 		os.Setenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS", "mi-platform-development,analytical-platform-data-development,analytical-platform-development,moj-network-operations-centre-preproduction,opg-lpa-data-store-development,")
 
-		result, err := handler(InstanceSchedulingRequest{Action: "Test"})
+		instanceScheduler := InstanceScheduler{loadDefaultConfig: LoadDefaultConfig}
+		result, err := instanceScheduler.handler(InstanceSchedulingRequest{Action: "Test"})
 		if err != nil {
 			t.Fatalf("Failed to run lambda's handler: %v", err)
 		}
