@@ -57,44 +57,41 @@ func StopStartTestRDSInstancesInMemberAccount(rdsClient IRDSInstancesAPI, action
 		// Valid values: default (same as absence of tag), skip-scheduling, skip-auto-stop, skip-auto-start
 
 		if instanceSchedulingTag == "skip-scheduling" {
-			log.Print(skippedMessage)
 			RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
-		} else if instanceSchedulingTag == "skip-auto-stop" {
-			if action == "stop" {
+			log.Print(skippedMessage)
+			continue
+		}
+		if action == "stop" {
+			if instanceSchedulingTag == "skip-auto-stop" {
+				RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
 				log.Print(skippedMessage)
-				RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
-			} else if action == "start" {
-				log.Print(actedUponMessage)
-				RDSinstancesActedUpon = append(RDSinstancesActedUpon, *rdsInstance.DBInstanceIdentifier)
-				startRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
-			} else if action == "test" {
-				log.Printf("Successfully tested skipping instance with Id %v\n", *rdsInstance.DBInstanceIdentifier)
-				RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
+				continue
 			}
-		} else if instanceSchedulingTag == "skip-auto-start" {
-			if action == "stop" {
-				log.Print(actedUponMessage)
-				RDSinstancesActedUpon = append(RDSinstancesActedUpon, *rdsInstance.DBInstanceIdentifier)
-				stopRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
-			} else if action == "start" {
-				log.Print(skippedMessage)
-				RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
-			} else if action == "test" {
-				log.Printf("Successfully tested skipping instance with Id %v\n", *rdsInstance.DBInstanceIdentifier)
-				RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
-			}
-
-		} else { // if instance-scheduling tag is missing, or the value of the tag either default, not valid or empty the RDS instance will be actioned
-			log.Print(actedUponMessage)
 			RDSinstancesActedUpon = append(RDSinstancesActedUpon, *rdsInstance.DBInstanceIdentifier)
-
-			if action == "stop" {
-				stopRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
-			} else if action == "start" {
-				startRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
-			} else if action == "test" {
-				log.Printf("Successfully tested RDS instance with Id %v\n", *rdsInstance.DBInstanceIdentifier)
+			stopRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
+			log.Print(actedUponMessage)
+			continue
+		}
+		if action == "start" {
+			if instanceSchedulingTag == "skip-auto-start" {
+				RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
+				log.Print(skippedMessage)
+				continue
 			}
+			RDSinstancesActedUpon = append(RDSinstancesActedUpon, *rdsInstance.DBInstanceIdentifier)
+			startRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
+			log.Print(actedUponMessage)
+			continue
+		}
+		if action == "test" {
+			if instanceSchedulingTag == "skip-auto-stop" || instanceSchedulingTag == "skip-auto-start" {
+				RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
+				log.Printf("Successfully tested skipping instance with Id %v\n", *rdsInstance.DBInstanceIdentifier)
+				continue
+			}
+			RDSinstancesActedUpon = append(RDSinstancesActedUpon, *rdsInstance.DBInstanceIdentifier)
+			log.Print(actedUponMessage)
+			continue
 		}
 	}
 
