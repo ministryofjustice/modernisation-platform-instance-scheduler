@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
@@ -71,4 +72,8 @@ func parseAction(action string) (string, error) {
 		return actionAsLower, nil
 	}
 	return "", errors.New("ERROR: Invalid Action. Must be one of 'start' 'stop' 'test'")
+}
+
+func LoadDefaultConfig() (aws.Config, error) {
+	return config.LoadDefaultConfig(context.TODO(), config.WithRegion("eu-west-2"))
 }

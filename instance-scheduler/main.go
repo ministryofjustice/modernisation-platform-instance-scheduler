@@ -1,14 +1,13 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
@@ -30,8 +29,12 @@ type InstanceSchedulingResponse struct {
 	RDSSkipped            int      `json:"rds_skipped"`
 }
 
-func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse, error) {
-	log.Printf("BEGIN: Instance scheduling v%v\n", INSTANCE_SCHEDULER_VERSION)
+type InstanceScheduler struct {
+	loadDefaultConfig func() (aws.Config, error)
+}
+
+func (instanceScheduler *InstanceScheduler) handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse, error) {
+	log.Printf("INFO: Starting Instance Scheduling...")
 
 	instanceSchedulingResponse := &InstanceSchedulingResponse{
 		Action:                request.Action,
@@ -53,14 +56,17 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 		}, err
 	}
 
+	cfg, err := instanceScheduler.loadDefaultConfig()
+	if err != nil {
+		body, _ := json.Marshal(instanceSchedulingResponse)
+		return events.APIGatewayProxyResponse{
+			Body:       string(body),
+			StatusCode: 500,
+		}, err
+	}
+
 	skipAccounts := os.Getenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS")
 	log.Printf("INSTANCE_SCHEDULING_SKIP_ACCOUNTS=%v\n", skipAccounts)
-
-	// Load the Shared AWS Configuration (~/.aws/config)
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("eu-west-2"))
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// Get the secret ID (ARN) of the environment management secret from the parameter store
 	ssmClient := ssm.NewFromConfig(cfg)
@@ -79,7 +85,7 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 			instanceSchedulingResponse.NonMemberAccountNames = append(instanceSchedulingResponse.NonMemberAccountNames, accName)
 		} else {
 			instanceSchedulingResponse.MemberAccountNames = append(instanceSchedulingResponse.MemberAccountNames, accName)
-			log.Printf("BEGIN: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
+			log.Printf("INFO: Instance scheduling for member account: accountName=%v\n", accName)
 			count := stopStartTestInstancesInMemberAccount(ec2Client, action)
 			instanceSchedulingResponse.ActedUpon += count.actedUpon
 			instanceSchedulingResponse.Skipped += count.skipped
@@ -88,19 +94,11 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 			rdsCount := StopStartTestRDSInstancesInMemberAccount(rdsClient, action)
 			instanceSchedulingResponse.RDSActedUpon += rdsCount.RDSActedUpon
 			instanceSchedulingResponse.RDSSkipped += rdsCount.RDSSkipped
-
-			log.Printf("END: Instance scheduling for member account: accountName=%v, accountId=%v\n", accName, accId)
 		}
 	}
 
-	if len(instanceSchedulingResponse.MemberAccountNames) > 0 {
-		log.Printf("END: Instance scheduling for %v member accounts: %v\n", len(instanceSchedulingResponse.MemberAccountNames), instanceSchedulingResponse.MemberAccountNames)
-	} else {
-		log.Println("WARN: END: Instance scheduling: No member account was found!")
-	}
-	if len(instanceSchedulingResponse.NonMemberAccountNames) > 0 {
-		log.Printf("Ignored %v non-member accounts lacking InstanceSchedulerAccess role: %v\n", len(instanceSchedulingResponse.NonMemberAccountNames), instanceSchedulingResponse.NonMemberAccountNames)
-	}
+	log.Printf("INFO: Instance scheduling for %v member accounts: %v\n", len(instanceSchedulingResponse.MemberAccountNames), instanceSchedulingResponse.MemberAccountNames)
+	log.Printf("INFO: Ignored %v non-member accounts lacking InstanceSchedulerAccess role: %v\n", len(instanceSchedulingResponse.NonMemberAccountNames), instanceSchedulingResponse.NonMemberAccountNames)
 
 	body, _ := json.Marshal(instanceSchedulingResponse)
 	return events.APIGatewayProxyResponse{
@@ -110,5 +108,6 @@ func handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse,
 }
 
 func main() {
-	lambda.Start(handler)
+	InstanceScheduler := InstanceScheduler{loadDefaultConfig: LoadDefaultConfig}
+	lambda.Start(InstanceScheduler.handler)
 }
