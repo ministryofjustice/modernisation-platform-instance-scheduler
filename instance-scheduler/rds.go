@@ -128,7 +128,7 @@ func StopStartTestRDSInstancesInMemberAccount(RDSClient IRDSInstancesAPI, action
 			}
 
 			instancesActedUpon = append(instancesActedUpon, *RDSInstance.DBInstanceIdentifier)
-			log.Printf("INFO: Successfully tested RDS instance with DB instance identifier %v because instance-scheduling tag is absent\n")
+			log.Printf("INFO: Successfully tested RDS instance with DB instance identifier %v because instance-scheduling tag is absent\n", *RDSInstance.DBInstanceIdentifier)
 			continue
 		}
 
@@ -150,7 +150,7 @@ func parseRDSInstanceTags(instance rdstype.DBInstance, RDSskippedInstances []str
 			instanceSchedulingTag = *tag.Value
 		}
 		if *tag.Key == "instance-scheduling" && *tag.Value == "skip-scheduling" {
-			log.Printf("Skip instance because instance-scheduling tag having value 'skip-scheduling'\n")
+			log.Printf("INFO: Skip instance because instance-scheduling tag having value 'skip-scheduling'\n")
 			RDSskippedInstances = append(RDSskippedInstances, *instance.DBInstanceIdentifier)
 			isSkipSchedulingTag = true
 		}
