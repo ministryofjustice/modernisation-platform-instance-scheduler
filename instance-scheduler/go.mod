@@ -3,7 +3,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.27.1
 	github.com/aws/aws-sdk-go-v2/config v1.27.17
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.17
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.162.0
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.163.0
 	github.com/aws/aws-sdk-go-v2/service/rds v1.79.4
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.29.2
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.50.5
