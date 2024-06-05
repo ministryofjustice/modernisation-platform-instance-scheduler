@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
+	rdstype "github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
@@ -23,99 +24,38 @@ type IRDSInstancesAPI interface {
 	DescribeDBInstances(ctx context.Context, params *rds.DescribeDBInstancesInput, optFns ...func(*rds.Options)) (*rds.DescribeDBInstancesOutput, error)
 }
 
-func StopStartTestRDSInstancesInMemberAccount(rdsClient IRDSInstancesAPI, action string) *RDSInstanceCount {
-	action = strings.ToLower(action)
-	rdscount := &RDSInstanceCount{RDSActedUpon: 0, RDSSkipped: 0}
-
-	result, err := rdsClient.DescribeDBInstances(context.TODO(), &rds.DescribeDBInstancesInput{})
-	if err != nil {
-		log.Print("ERROR: Could not retrieve information about Amazon RDS instances in member account:\n", err)
-		return rdscount
-	}
-
-	RDSinstancesActedUpon := []string{}
-	RDSskippedInstances := []string{}
-
-	for _, rdsInstance := range result.DBInstances {
-		var instanceSchedulingTag string
-		for _, tag := range rdsInstance.TagList {
-			if *tag.Key == "instance-scheduling" {
-				instanceSchedulingTag = *tag.Value
-				break
-			}
-		}
-
-		instanceSchedulingTagDescr := fmt.Sprintf("with instance-scheduling tag having value '%v'", instanceSchedulingTag)
-		if instanceSchedulingTag == "" {
-			instanceSchedulingTagDescr = "with instance-scheduling tag being absent"
-		}
-
-		actedUponMessage := fmt.Sprintf("%v instance %v %v\n", action, *rdsInstance.DBInstanceIdentifier, instanceSchedulingTagDescr)
-		skippedMessage := fmt.Sprintf("Skipped instance %v %v\n", *rdsInstance.DBInstanceIdentifier, instanceSchedulingTagDescr)
-
-		// Tag key: instance-scheduling
-		// Valid values: default (same as absence of tag), skip-scheduling, skip-auto-stop, skip-auto-start
-
-		if instanceSchedulingTag == "skip-scheduling" {
-			log.Print(skippedMessage)
-			RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
-		} else if instanceSchedulingTag == "skip-auto-stop" {
-			if action == "stop" {
-				log.Print(skippedMessage)
-				RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
-			} else if action == "start" {
-				log.Print(actedUponMessage)
-				RDSinstancesActedUpon = append(RDSinstancesActedUpon, *rdsInstance.DBInstanceIdentifier)
-				startRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
-			} else if action == "test" {
-				log.Printf("Successfully tested skipping instance with Id %v\n", *rdsInstance.DBInstanceIdentifier)
-				RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
-			}
-		} else if instanceSchedulingTag == "skip-auto-start" {
-			if action == "stop" {
-				log.Print(actedUponMessage)
-				RDSinstancesActedUpon = append(RDSinstancesActedUpon, *rdsInstance.DBInstanceIdentifier)
-				stopRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
-			} else if action == "start" {
-				log.Print(skippedMessage)
-				RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
-			} else if action == "test" {
-				log.Printf("Successfully tested skipping instance with Id %v\n", *rdsInstance.DBInstanceIdentifier)
-				RDSskippedInstances = append(RDSskippedInstances, *rdsInstance.DBInstanceIdentifier)
-			}
-
-		} else { // if instance-scheduling tag is missing, or the value of the tag either default, not valid or empty the RDS instance will be actioned
-			log.Print(actedUponMessage)
-			RDSinstancesActedUpon = append(RDSinstancesActedUpon, *rdsInstance.DBInstanceIdentifier)
-
-			if action == "stop" {
-				stopRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
-			} else if action == "start" {
-				startRDSInstance(rdsClient, *rdsInstance.DBInstanceIdentifier)
-			} else if action == "test" {
-				log.Printf("Successfully tested RDS instance with Id %v\n", *rdsInstance.DBInstanceIdentifier)
-			}
-		}
-	}
-
-	acted := "Started"
+func StopStartTestRDSInstancesInMemberAccount(RDSClient IRDSInstancesAPI, action string) *RDSInstanceCount {
 	if action == "stop" {
-		acted = "Stopped"
-	} else if action == "test" {
-		acted = "Tested"
-	}
-	if len(RDSinstancesActedUpon) > 0 {
-		log.Printf("%v %v RDS instances: %v\n", acted, len(RDSinstancesActedUpon), RDSinstancesActedUpon)
-		rdscount.RDSActedUpon = len(RDSinstancesActedUpon)
-	} else {
-		log.Printf("WARN: No RDS instances found to %v!\n", action)
-	}
-	if len(RDSskippedInstances) > 0 {
-		log.Printf("Skipped %v RDS instances due to instance-scheduling tag: %v\n", len(RDSskippedInstances), RDSskippedInstances)
-		rdscount.RDSSkipped = len(RDSskippedInstances)
+		return stopRDSInstances(RDSClient)
 	}
 
-	return rdscount
+	if action == "start" {
+		return startRDSInstances(RDSClient)
+	}
+
+	if action == "test" {
+		return testRDSInstances(RDSClient)
+	}
+
+	log.Fatalf("Invalid action: [ %v ]", action)
+	return nil
+}
+
+func parseRDSInstanceTags(instance rdstype.DBInstance, RDSskippedInstances []string) (string, bool, []string) {
+	var instanceSchedulingTag string
+	isSkipSchedulingTag := false
+	for _, tag := range instance.TagList {
+		if *tag.Key == "instance-scheduling" {
+			instanceSchedulingTag = *tag.Value
+		}
+		if *tag.Key == "instance-scheduling" && *tag.Value == "skip-scheduling" {
+			log.Printf("INFO: Skip instance because instance-scheduling tag having value 'skip-scheduling'\n")
+			RDSskippedInstances = append(RDSskippedInstances, *instance.DBInstanceIdentifier)
+			isSkipSchedulingTag = true
+		}
+	}
+
+	return instanceSchedulingTag, isSkipSchedulingTag, RDSskippedInstances
 }
 
 func startRDSInstance(client IRDSInstancesAPI, dbInstanceIdentifier string) {
@@ -125,7 +65,7 @@ func startRDSInstance(client IRDSInstancesAPI, dbInstanceIdentifier string) {
 
 	_, err := client.StartDBInstance(context.TODO(), input)
 	if err == nil {
-		log.Printf("Successfully started RDS instance with Identifier %v\n", dbInstanceIdentifier)
+		log.Printf("INFO: Successfully started RDS instance with Identifier %v\n", dbInstanceIdentifier)
 	} else {
 		log.Printf("ERROR: Could not start RDS instance: %v\n", err)
 	}
@@ -138,10 +78,117 @@ func stopRDSInstance(client IRDSInstancesAPI, dbInstanceIdentifier string) {
 
 	_, err := client.StopDBInstance(context.TODO(), input)
 	if err == nil {
-		log.Printf("Successfully stopped RDS instance with Identifier %v\n", dbInstanceIdentifier)
+		log.Printf("INFO: Successfully stopped RDS instance with Identifier %v\n", dbInstanceIdentifier)
 	} else {
 		log.Printf("ERROR: Could not stop RDS instance: %v\n", err)
 	}
+}
+
+func stopRDSInstances(RDSClient IRDSInstancesAPI) *RDSInstanceCount {
+	result, err := RDSClient.DescribeDBInstances(context.TODO(), &rds.DescribeDBInstancesInput{})
+	if err != nil {
+		log.Print("ERROR: Could not retrieve information about Amazon RDS instances in member account:\n", err)
+		return &RDSInstanceCount{RDSActedUpon: 0, RDSSkipped: 0}
+	}
+
+	instancesActedUpon := []string{}
+	skippedInstances := []string{}
+
+	for _, RDSInstance := range result.DBInstances {
+		log.Printf("INFO: RDS Instance Identifier: [ %v ]\n", *RDSInstance.DBInstanceIdentifier)
+		instanceSchedulingTag, skipInstance, skippedInstancesModified := parseRDSInstanceTags(RDSInstance, skippedInstances)
+		skippedInstances = skippedInstancesModified
+
+		if skipInstance {
+			continue
+		}
+
+		if instanceSchedulingTag == "skip-auto-stop" {
+			skippedInstances = append(skippedInstances, *RDSInstance.DBInstanceIdentifier)
+			log.Printf("INFO: Skipped RDS instance because instance-scheduling tag having value 'skip-auto-stop'\n")
+			continue
+		}
+
+		instancesActedUpon = append(instancesActedUpon, *RDSInstance.DBInstanceIdentifier)
+		stopRDSInstance(RDSClient, *RDSInstance.DBInstanceIdentifier)
+		log.Printf("INFO: Stopped RDS instance because instance-scheduling tag is absent\n")
+	}
+
+	log.Printf("INFO: Stopped %v instances: %v\n", len(instancesActedUpon), instancesActedUpon)
+	log.Printf("INFO: Skipped %v instances due to instance-scheduling tag: %v\n", len(skippedInstances), skippedInstances)
+
+	return &RDSInstanceCount{RDSActedUpon: len(instancesActedUpon), RDSSkipped: len(skippedInstances)}
+}
+
+func startRDSInstances(RDSClient IRDSInstancesAPI) *RDSInstanceCount {
+	result, err := RDSClient.DescribeDBInstances(context.TODO(), &rds.DescribeDBInstancesInput{})
+	if err != nil {
+		log.Print("ERROR: Could not retrieve information about Amazon RDS instances in member account:\n", err)
+		return &RDSInstanceCount{RDSActedUpon: 0, RDSSkipped: 0}
+	}
+
+	instancesActedUpon := []string{}
+	skippedInstances := []string{}
+
+	for _, RDSInstance := range result.DBInstances {
+		log.Printf("INFO: RDS Instance Identifier: [ %v ]\n", *RDSInstance.DBInstanceIdentifier)
+		instanceSchedulingTag, skipInstance, skippedInstancesModified := parseRDSInstanceTags(RDSInstance, skippedInstances)
+		skippedInstances = skippedInstancesModified
+
+		if skipInstance {
+			continue
+		}
+
+		if instanceSchedulingTag == "skip-auto-start" {
+			skippedInstances = append(skippedInstances, *RDSInstance.DBInstanceIdentifier)
+			log.Printf("INFO: Skipped RDS instance because instance-scheduling tag having value 'skip-auto-start'\n")
+			continue
+		}
+
+		instancesActedUpon = append(instancesActedUpon, *RDSInstance.DBInstanceIdentifier)
+		startRDSInstance(RDSClient, *RDSInstance.DBInstanceIdentifier)
+		log.Printf("INFO: Started RDS instance because instance-scheduling tag is absent\n")
+	}
+
+	log.Printf("INFO: Started %v RDS instances: %v\n", len(instancesActedUpon), instancesActedUpon)
+	log.Printf("INFO: Skipped %v RDS instances due to instance-scheduling tag: %v\n", len(skippedInstances), skippedInstances)
+
+	return &RDSInstanceCount{RDSActedUpon: len(instancesActedUpon), RDSSkipped: len(skippedInstances)}
+}
+
+func testRDSInstances(RDSClient IRDSInstancesAPI) *RDSInstanceCount {
+	result, err := RDSClient.DescribeDBInstances(context.TODO(), &rds.DescribeDBInstancesInput{})
+	if err != nil {
+		log.Print("ERROR: Could not retrieve information about Amazon RDS instances in member account:\n", err)
+		return &RDSInstanceCount{RDSActedUpon: 0, RDSSkipped: 0}
+	}
+
+	instancesActedUpon := []string{}
+	skippedInstances := []string{}
+
+	for _, RDSInstance := range result.DBInstances {
+		log.Printf("INFO: RDS Instance Identifier: [ %v ]\n", *RDSInstance.DBInstanceIdentifier)
+		instanceSchedulingTag, skipInstance, skippedInstancesModified := parseRDSInstanceTags(RDSInstance, skippedInstances)
+		skippedInstances = skippedInstancesModified
+
+		if skipInstance {
+			continue
+		}
+
+		if instanceSchedulingTag == "skip-auto-stop" || instanceSchedulingTag == "skip-auto-start" {
+			skippedInstances = append(skippedInstances, *RDSInstance.DBInstanceIdentifier)
+			log.Printf("INFO: Skipped RDS instance with DB instance identifier %v because instance-scheduling tag having value 'skip-auto-stop' or 'skip-auto-start'", *RDSInstance.DBInstanceIdentifier)
+			continue
+		}
+
+		instancesActedUpon = append(instancesActedUpon, *RDSInstance.DBInstanceIdentifier)
+		log.Printf("INFO: Successfully tested RDS instance with DB instance identifier %v because instance-scheduling tag is absent\n", *RDSInstance.DBInstanceIdentifier)
+	}
+
+	log.Printf("INFO: Started %v RDS instances: %v\n", len(instancesActedUpon), instancesActedUpon)
+	log.Printf("INFO: Skipped %v RDS instances due to instance-scheduling tag: %v\n", len(skippedInstances), skippedInstances)
+
+	return &RDSInstanceCount{RDSActedUpon: len(instancesActedUpon), RDSSkipped: len(skippedInstances)}
 }
 
 func getRDSClientForMemberAccount(cfg aws.Config, accountName string, accountId string) IRDSInstancesAPI {

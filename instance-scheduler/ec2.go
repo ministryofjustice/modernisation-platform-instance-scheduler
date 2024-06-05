@@ -48,7 +48,7 @@ func parseInstanceTags(instance ec2type.Instance, skippedInstances []string, ski
 	isSkipSchedulingTag := false
 	for _, tag := range instance.Tags {
 		if *tag.Key == "aws:autoscaling:groupName" {
-			log.Printf("Skip instance because aws:autoscaling:groupName tag because it is part of an Auto Scaling group\n")
+			log.Printf("INFO: Skip instance because aws:autoscaling:groupName tag because it is part of an Auto Scaling group\n")
 			skippedAutoScaledInstances = append(skippedAutoScaledInstances, *instance.InstanceId)
 			isPartOfAutoScalingGroup = true
 		}
@@ -56,7 +56,7 @@ func parseInstanceTags(instance ec2type.Instance, skippedInstances []string, ski
 			instanceSchedulingTag = *tag.Value
 		}
 		if *tag.Key == "instance-scheduling" && *tag.Value == "skip-scheduling" {
-			log.Printf("Skip instance because instance-scheduling tag having value 'skip-scheduling'\n")
+			log.Printf("INFO: Skip instance because instance-scheduling tag having value 'skip-scheduling'\n")
 			skippedInstances = append(skippedInstances, *instance.InstanceId)
 			isSkipSchedulingTag = true
 		}
