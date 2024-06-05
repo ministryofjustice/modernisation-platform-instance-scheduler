@@ -26,15 +26,15 @@ type IRDSInstancesAPI interface {
 
 func StopStartTestRDSInstancesInMemberAccount(RDSClient IRDSInstancesAPI, action string) *RDSInstanceCount {
 	if action == "stop" {
-		stopRDSInstances(RDSClient)
+		return stopRDSInstances(RDSClient)
 	}
 
 	if action == "start" {
-		startRDSInstances(RDSClient)
+		return startRDSInstances(RDSClient)
 	}
 
 	if action == "test" {
-		testRDSInstances(RDSClient)
+		return testRDSInstances(RDSClient)
 	}
 
 	log.Fatalf("Invalid action: [ %v ]", action)
@@ -65,7 +65,7 @@ func startRDSInstance(client IRDSInstancesAPI, dbInstanceIdentifier string) {
 
 	_, err := client.StartDBInstance(context.TODO(), input)
 	if err == nil {
-		log.Printf("Successfully started RDS instance with Identifier %v\n", dbInstanceIdentifier)
+		log.Printf("INFO: Successfully started RDS instance with Identifier %v\n", dbInstanceIdentifier)
 	} else {
 		log.Printf("ERROR: Could not start RDS instance: %v\n", err)
 	}
@@ -78,7 +78,7 @@ func stopRDSInstance(client IRDSInstancesAPI, dbInstanceIdentifier string) {
 
 	_, err := client.StopDBInstance(context.TODO(), input)
 	if err == nil {
-		log.Printf("Successfully stopped RDS instance with Identifier %v\n", dbInstanceIdentifier)
+		log.Printf("INFO: Successfully stopped RDS instance with Identifier %v\n", dbInstanceIdentifier)
 	} else {
 		log.Printf("ERROR: Could not stop RDS instance: %v\n", err)
 	}
