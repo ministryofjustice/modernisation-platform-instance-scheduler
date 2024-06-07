@@ -28,6 +28,10 @@ func getParameter(client ISSMGetParameter, parameterName string) string {
 	return *result.Parameter.Value
 }
 
+func CreateSSMClient(config aws.Config) ISSMGetParameter {
+	return ssm.NewFromConfig(config)
+}
+
 type ISecretManagerGetSecretValue interface {
 	GetSecretValue(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error)
 }
@@ -42,6 +46,10 @@ func getSecret(client ISecretManagerGetSecretValue, secretId string) string {
 		log.Fatal(err)
 	}
 	return *result.SecretString
+}
+
+func CreateSecretManagerClient(config aws.Config) ISecretManagerGetSecretValue {
+	return secretsmanager.NewFromConfig(config)
 }
 
 func getNonProductionAccounts(environments string, skipAccountNames string) map[string]string {
