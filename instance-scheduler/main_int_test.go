@@ -16,7 +16,18 @@ func TestHandler(t *testing.T) {
 		// lacking the InstanceSchedulerAccess role, but they have the '-development' suffix typically present in member accounts.
 		os.Setenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS", "mi-platform-development,analytical-platform-data-development,analytical-platform-development,moj-network-operations-centre-preproduction,opg-lpa-data-store-development,")
 
-		instanceScheduler := InstanceScheduler{loadDefaultConfig: LoadDefaultConfig}
+		instanceScheduler := InstanceScheduler{
+			LoadDefaultConfig:                        LoadDefaultConfig,
+			GetEnv:                                   os.Getenv,
+			CreateSSMClient:                          CreateSSMClient,
+			GetParameter:                             getParameter,
+			CreateSecretManagerClient:                CreateSecretManagerClient,
+			GetSecret:                                getSecret,
+			GetEc2ClientForMemberAccount:             getEc2ClientForMemberAccount,
+			GetRDSClientForMemberAccount:             getRDSClientForMemberAccount,
+			StopStartTestInstancesInMemberAccount:    stopStartTestInstancesInMemberAccount,
+			StopStartTestRDSInstancesInMemberAccount: StopStartTestRDSInstancesInMemberAccount,
+		}
 		result, err := instanceScheduler.handler(InstanceSchedulingRequest{Action: "Test"})
 		if err != nil {
 			t.Fatalf("Failed to run lambda's handler: %v", err)

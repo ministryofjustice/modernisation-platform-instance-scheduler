@@ -8,8 +8,6 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
-	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
 const INSTANCE_SCHEDULER_VERSION string = "1.2.1"
@@ -30,7 +28,16 @@ type InstanceSchedulingResponse struct {
 }
 
 type InstanceScheduler struct {
-	loadDefaultConfig func() (aws.Config, error)
+	LoadDefaultConfig                        func() (aws.Config, error)
+	GetEnv                                   func(string) string
+	CreateSSMClient                          func(aws.Config) ISSMGetParameter
+	GetParameter                             func(client ISSMGetParameter, parameterName string) string
+	CreateSecretManagerClient                func(cfg aws.Config) ISecretManagerGetSecretValue
+	GetSecret                                func(client ISecretManagerGetSecretValue, secretId string) string
+	GetEc2ClientForMemberAccount             func(cfg aws.Config, accountName string, accountId string) IEC2InstancesAPI
+	GetRDSClientForMemberAccount             func(cfg aws.Config, accountName string, accountId string) IRDSInstancesAPI
+	StopStartTestInstancesInMemberAccount    func(client IEC2InstancesAPI, action string) *InstanceCount
+	StopStartTestRDSInstancesInMemberAccount func(RDSClient IRDSInstancesAPI, action string) *RDSInstanceCount
 }
 
 func (instanceScheduler *InstanceScheduler) handler(request InstanceSchedulingRequest) (events.APIGatewayProxyResponse, error) {
@@ -56,7 +63,7 @@ func (instanceScheduler *InstanceScheduler) handler(request InstanceSchedulingRe
 		}, err
 	}
 
-	cfg, err := instanceScheduler.loadDefaultConfig()
+	cfg, err := instanceScheduler.LoadDefaultConfig()
 	if err != nil {
 		body, _ := json.Marshal(instanceSchedulingResponse)
 		return events.APIGatewayProxyResponse{
@@ -65,33 +72,32 @@ func (instanceScheduler *InstanceScheduler) handler(request InstanceSchedulingRe
 		}, err
 	}
 
-	skipAccounts := os.Getenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS")
+	skipAccounts := instanceScheduler.GetEnv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS")
 	log.Printf("INSTANCE_SCHEDULING_SKIP_ACCOUNTS=%v\n", skipAccounts)
 
-	// Get the secret ID (ARN) of the environment management secret from the parameter store
-	ssmClient := ssm.NewFromConfig(cfg)
-	secretId := getParameter(ssmClient, "environment_management_arn")
+	ssmClient := instanceScheduler.CreateSSMClient(cfg)
+	secretId := instanceScheduler.GetParameter(ssmClient, "environment_management_arn")
 
-	// Get the environment management secret that holds the account IDs
-	secretsManagerClient := secretsmanager.NewFromConfig(cfg)
-	environments := getSecret(secretsManagerClient, secretId)
+	secretsManagerClient := instanceScheduler.CreateSecretManagerClient(cfg)
+	environments := instanceScheduler.GetSecret(secretsManagerClient, secretId)
 
 	accounts := getNonProductionAccounts(environments, skipAccounts)
 	for accName, accId := range accounts {
-		ec2Client := getEc2ClientForMemberAccount(cfg, accName, accId)
-		rdsClient := getRDSClientForMemberAccount(cfg, accName, accId)
+		ec2Client := instanceScheduler.GetEc2ClientForMemberAccount(cfg, accName, accId)
+		rdsClient := instanceScheduler.GetRDSClientForMemberAccount(cfg, accName, accId)
 
 		if ec2Client == nil || rdsClient == nil {
 			instanceSchedulingResponse.NonMemberAccountNames = append(instanceSchedulingResponse.NonMemberAccountNames, accName)
 		} else {
 			instanceSchedulingResponse.MemberAccountNames = append(instanceSchedulingResponse.MemberAccountNames, accName)
 			log.Printf("INFO: Instance scheduling for member account: accountName=%v\n", accName)
-			count := stopStartTestInstancesInMemberAccount(ec2Client, action)
+
+			count := instanceScheduler.StopStartTestInstancesInMemberAccount(ec2Client, action)
 			instanceSchedulingResponse.ActedUpon += count.actedUpon
 			instanceSchedulingResponse.Skipped += count.skipped
 			instanceSchedulingResponse.SkippedAutoScaled += count.skippedAutoScaled
 
-			rdsCount := StopStartTestRDSInstancesInMemberAccount(rdsClient, action)
+			rdsCount := instanceScheduler.StopStartTestRDSInstancesInMemberAccount(rdsClient, action)
 			instanceSchedulingResponse.RDSActedUpon += rdsCount.RDSActedUpon
 			instanceSchedulingResponse.RDSSkipped += rdsCount.RDSSkipped
 		}
@@ -108,6 +114,17 @@ func (instanceScheduler *InstanceScheduler) handler(request InstanceSchedulingRe
 }
 
 func main() {
-	InstanceScheduler := InstanceScheduler{loadDefaultConfig: LoadDefaultConfig}
+	InstanceScheduler := InstanceScheduler{
+		LoadDefaultConfig:                        LoadDefaultConfig,
+		GetEnv:                                   os.Getenv,
+		CreateSSMClient:                          CreateSSMClient,
+		GetParameter:                             getParameter,
+		CreateSecretManagerClient:                CreateSecretManagerClient,
+		GetSecret:                                getSecret,
+		GetEc2ClientForMemberAccount:             getEc2ClientForMemberAccount,
+		GetRDSClientForMemberAccount:             getRDSClientForMemberAccount,
+		StopStartTestInstancesInMemberAccount:    stopStartTestInstancesInMemberAccount,
+		StopStartTestRDSInstancesInMemberAccount: StopStartTestRDSInstancesInMemberAccount,
+	}
 	lambda.Start(InstanceScheduler.handler)
 }
