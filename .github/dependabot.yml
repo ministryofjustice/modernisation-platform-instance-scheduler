@@ -4,11 +4,14 @@ updates:
     directory: "/instance-scheduler"
     schedule:
       interval: "daily"
+    open-pull-requests-limit: 10
   - package-ecosystem: "docker"
     directory: "/instance-scheduler"
     schedule:
       interval: "daily"
+    open-pull-requests-limit: 10
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "daily"
+    open-pull-requests-limit: 10
