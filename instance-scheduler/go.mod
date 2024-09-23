@@ -32,4 +32,4 @@ replace gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
 
 module instance-scheduler
 
-go 1.21
+go 1.23
