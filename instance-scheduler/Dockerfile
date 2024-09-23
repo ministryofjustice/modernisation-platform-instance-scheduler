@@ -10,18 +10,8 @@ RUN curl -sSL https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz | tar -C /usr
 # Verify Go installation
 RUN echo "Go Version: $(go version)" && go version
 
-# Set up working directory
-# WORKDIR /
-
-# Copy go modules files and download dependencies
-COPY go.mod go.sum ./
-RUN go mod download
-
 # Copy the rest of the source code
 COPY . .
-
-# Ensure Go is still available after all steps
-RUN which go && go version
 
 # Build the Go binary
 RUN CGO_ENABLED=0 go build -o /instance-scheduler .
