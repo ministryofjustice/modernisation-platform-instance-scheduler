@@ -44,13 +44,19 @@ jobs:
           role-session-name: githubactionsrolesession
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Lint Dockerfile
+        run: docker run --rm -i hadolint/hadolint < instance-scheduler/Dockerfile
+  
+      - name: Test Docker Image Locally
+        run: |
+          docker build -t instance-scheduler-test -f instance-scheduler/Dockerfile .
+          docker run --rm instance-scheduler-test  
+
       - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with:
           go-version: 1.23
           cache-dependency-path: "**/go.sum"
       - uses: aws-actions/setup-sam@2360ef6d90015369947b45b496193ab9976a9b04 # v2
-      - name: Lint Dockerfile
-        run: docker run --rm -i hadolint/hadolint < instance-scheduler/Dockerfile
       - name: SAM Validate
         run: |
           sam validate --region ${{ env.AWS_REGION }}
@@ -70,10 +76,6 @@ jobs:
           aws sts get-caller-identity
           go test -v
           unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
-      - name: Test Docker Image Locally
-        run: |
-          docker build -t instance-scheduler-test .
-          docker run --rm instance-scheduler-test
       - name: Configure aws credentials and assume github-actions role
         uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
         with:
