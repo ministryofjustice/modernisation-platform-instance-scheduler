@@ -1,3 +1,7 @@
+module github.com/ministryofjustice/modernisation-platform-instance-scheduler
+
+go 1.23
+
 require (
 	github.com/aws/aws-lambda-go v1.47.0
 	github.com/aws/aws-sdk-go-v2 v1.32.3
@@ -27,9 +31,3 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
-
-module instance-scheduler
-
-go 1.23
