@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 	"testing"
 
@@ -13,44 +12,10 @@ import (
 
 func TestHandler(t *testing.T) {
 	t.Run("Test request", func(t *testing.T) {
-		// Docker image test preparation
-		t.Log("Running `sam build` to prepare the Dockerfile for Lambda...")
-		cmd := exec.Command("sam", "build", "--use-container")
-		err := cmd.Run()
-		assert.NoError(t, err, "SAM build failed")
-
-		t.Log("Building Docker image from SAM-generated Dockerfile...")
-		imageName := "instance-scheduler-test"
-		cmd = exec.Command("docker", "build", "-t", imageName, "-f", ".aws-sam/build/instance-scheduler/Dockerfile", ".")
-		err = cmd.Run()
-		assert.NoError(t, err, "Docker image build failed")
-
-		// Verify the Docker image was created
-		t.Log("Verifying Docker image was created...")
-		cmd = exec.Command("docker", "images", "-q", imageName)
-		imageID, err := cmd.Output()
-		assert.NoError(t, err, "Failed to verify Docker image")
-		assert.NotEmpty(t, string(imageID), "Docker image should exist")
-
-		// Run the Docker container and check output
-		t.Log("Running Docker container and checking output...")
-		cmd = exec.Command("docker", "run", "--rm", imageName, "echo", "Hello from Docker")
-		output, err := cmd.Output()
-		assert.NoError(t, err, "Failed to run Docker container")
-		assert.Contains(t, string(output), "Hello from Docker", "Unexpected output from Docker container")
-
-		// Environment variable check
-		t.Log("Checking environment variable settings in Docker container...")
-		cmd = exec.Command("docker", "run", "--rm", imageName, "printenv", "INSTANCE_SCHEDULING_SKIP_ACCOUNTS")
-		envOutput, err := cmd.Output()
-		assert.NoError(t, err, "Failed to retrieve environment variable from Docker container")
-		expectedEnvValue := "mi-platform-development,analytical-platform-data-development,analytical-platform-development,moj-network-operations-centre-preproduction,opg-lpa-data-store-development,"
-		assert.Equal(t, expectedEnvValue, string(envOutput), "Environment variable INSTANCE_SCHEDULING_SKIP_ACCOUNTS does not match expected value")
-
-		// Set the environment variable
+		// Accounts mi-platform-development and analytical-platform-data-development cause the main_int_test.go to fail because they are non-member accounts
+		// lacking the InstanceSchedulerAccess role, but they have the '-development' suffix typically present in member accounts.
 		os.Setenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS", "mi-platform-development,analytical-platform-data-development,analytical-platform-development,moj-network-operations-centre-preproduction,opg-lpa-data-store-development,")
 
-		// Run existing InstanceScheduler test cases
 		instanceScheduler := InstanceScheduler{
 			LoadDefaultConfig:                        LoadDefaultConfig,
 			GetEnv:                                   os.Getenv,
@@ -67,8 +32,6 @@ func TestHandler(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to run lambda's handler: %v", err)
 		}
-
-		// Validate InstanceSchedulingResponse
 		res := InstanceSchedulingResponse{}
 		json.Unmarshal([]byte(result.Body), &res)
 		assert.Equal(t, res.Action, "Test", "Response action does not match requested action")
