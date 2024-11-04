@@ -48,19 +48,18 @@ jobs:
           cache-dependency-path: "**/go.sum"
       - uses: aws-actions/setup-sam@2360ef6d90015369947b45b496193ab9976a9b04 # v2
       - name: SAM Validate
-        run: |
-          sam validate --region ${{ env.AWS_REGION }}
-      # Build inside Docker containers
+        run: sam validate --region ${{ env.AWS_REGION }}
       - name: SAM Build
         run: sam build --use-container --region ${{ env.AWS_REGION }}
-      - name: SAM Local Invoke with InstanceSchedulerLambdaFunctionPolicy Role
+      - name: SAM Local Invoke
         run: |
           aws sts assume-role --role-arn $LAMBDA_ROLE_ARN --role-session-name githubactionsgotestrolesession > creds
           $(echo "export AWS_ACCESS_KEY_ID=$(echo $(cat creds) | sed -n 's/.*"AccessKeyId": "\([^"]*\)".*/\1/p')")
           $(echo "export AWS_SECRET_ACCESS_KEY=$(echo $(cat creds) | sed -n 's/.*"SecretAccessKey": "\([^"]*\)".*/\1/p')")
           $(echo "export AWS_SESSION_TOKEN=$(echo $(cat creds) | sed -n 's/.*"SessionToken": "\([^"]*\)".*/\1/p')")
           aws sts get-caller-identity
-          sam local invoke InstanceSchedulerFunction --event event.json
+          # Invoke the SAM function and check for error
+          ! sam local invoke InstanceSchedulerFunction --event event.json 2>&1 |grep -i error
           unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
       - name: Download Go Modules
         working-directory: instance-scheduler
