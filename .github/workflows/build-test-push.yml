@@ -48,7 +48,9 @@ jobs:
           cache-dependency-path: "**/go.sum"
       - uses: aws-actions/setup-sam@2360ef6d90015369947b45b496193ab9976a9b04 # v2
       - name: SAM Validate
-        run: sam validate --region ${{ env.AWS_REGION }}
+        run: |
+          sam validate --region ${{ env.AWS_REGION }}
+      # Build inside Docker containers
       - name: SAM Build
         run: sam build --use-container --region ${{ env.AWS_REGION }}
       - name: SAM Local Invoke
@@ -58,19 +60,19 @@ jobs:
           export AWS_SECRET_ACCESS_KEY=$(cat creds | jq -r '.Credentials.SecretAccessKey')
           export AWS_SESSION_TOKEN=$(cat creds | jq -r '.Credentials.SessionToken')
           aws sts get-caller-identity
-      
+
           # Capture SAM output in a variable
           SAM_OUTPUT=$(sam local invoke InstanceSchedulerFunction --event event.json 2>&1)
           echo "$SAM_OUTPUT"
-      
+
           # Check for errors in the output
           if echo "$SAM_OUTPUT" | grep -i "error"; then
             echo "Error detected in SAM invoke output."
             exit 1
           fi
-      
+
           unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
-      
+
       - name: Download Go Modules
         working-directory: instance-scheduler
         run: go mod download
