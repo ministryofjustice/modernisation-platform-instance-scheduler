@@ -54,7 +54,7 @@ func CreateSecretManagerClient(config aws.Config) ISecretManagerGetSecretValue {
 
 func getNonProductionAccounts(environments string, skipAccountNames string) map[string]string {
 	accounts := make(map[string]string)
-
+    log.Printf("Skip Accounts: %s", skipAccountNames)
 	var allAccounts map[string]interface{}
 	json.Unmarshal([]byte(environments), &allAccounts)
 
@@ -63,6 +63,7 @@ func getNonProductionAccounts(environments string, skipAccountNames string) map[
 			for key, val := range rec {
 				// Skip if the account's name ends with "-production", for example: performance-hub-production will be skipped
 				if !strings.HasSuffix(key, "-production") && (len(skipAccountNames) < 1 || !strings.Contains(skipAccountNames, key)) {
+					log.Printf("INFO: Account Name: %s", val.(string))
 					accounts[key] = val.(string)
 				}
 			}
