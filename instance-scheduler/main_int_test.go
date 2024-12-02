@@ -14,6 +14,7 @@ func TestHandler(t *testing.T) {
 	t.Run("Test request", func(t *testing.T) {
 		// Accounts mi-platform-development and analytical-platform-data-development cause the main_int_test.go to fail because they are non-member accounts
 		// lacking the InstanceSchedulerAccess role, but they have the '-development' suffix typically present in member accounts.
+		// new line
 		os.Setenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS", "mi-platform-development,analytical-platform-data-development,analytical-platform-development,moj-network-operations-centre-preproduction,opg-lpa-data-store-development,")
 
 		instanceScheduler := InstanceScheduler{
