@@ -72,7 +72,8 @@ func (instanceScheduler *InstanceScheduler) handler(request InstanceSchedulingRe
 		}, err
 	}
 
-	skipAccounts := instanceScheduler.GetEnv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS")
+	//skipAccounts := instanceScheduler.GetEnv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS")
+	skipAccounts := "analytical-platform-compute-development,analytical-platform-compute-test,analytical-platform-data-development,bichard7-sandbox-a,bichard7-sandbox-b,bichard7-sandbox-c,bichard7-sandbox-shared,bichard7-shared,bichard7-test-current,bichard7-test-next,core-vpc-development,core-vpc-preproduction,core-vpc-sandbox,core-vpc-test,mi-platform-development,nomis-preproduction"
 	log.Printf("INSTANCE_SCHEDULING_SKIP_ACCOUNTS=%v\n", skipAccounts)
 
 	ssmClient := instanceScheduler.CreateSSMClient(cfg)
