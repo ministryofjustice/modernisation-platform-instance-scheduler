@@ -203,7 +203,7 @@ func getRDSClientForMemberAccount(cfg aws.Config, accountName string, accountId 
 	_, rdsErr := rdsClient.DescribeDBInstances(context.TODO(), rdsInput)
 	if rdsErr != nil {
 		if strings.Contains(rdsErr.Error(), "is not authorized to perform: sts:AssumeRole on resource") {
-			log.Printf("WARN: account %v (%v) is ignored because it does not have the role InstanceSchedulerAccess, therefore is not a member account\n", accountName, accountId)
+			log.Printf("WARN: account %v is ignored because it does not have the role InstanceSchedulerAccess, therefore is not a member account\n", accountName)
 			return nil
 		} else {
 			log.Fatal(rdsErr)
