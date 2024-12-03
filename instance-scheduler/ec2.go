@@ -248,7 +248,7 @@ func getEc2ClientForMemberAccount(cfg aws.Config, accountName string, accountId 
 	_, err := ec2Client.DescribeInstances(context.TODO(), ec2Input)
 	if err != nil {
 		if strings.Contains(err.Error(), "is not authorized to perform: sts:AssumeRole on resource") {
-			log.Printf("WARN: account %v (%v) is ignored because it does not have the role InstanceSchedulerAccess, therefore is not a member account\n", accountName, accountId)
+			log.Printf("WARN: account %v is ignored because it does not have the role InstanceSchedulerAccess, therefore is not a member account\n", accountName)
 			return nil
 		} else {
 			log.Fatal(err)
