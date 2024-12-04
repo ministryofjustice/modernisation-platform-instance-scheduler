@@ -36,7 +36,7 @@ Resources:
       Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
         Variables:
           # Only nomis-preproduction is a member account having the InstanceSchedulerAccess role
-          INSTANCE_SCHEDULING_SKIP_ACCOUNTS: analytical-platform-data-development,analytical-platform-data-engineering-sandbox-a,analytical-platform-development,bichard7-sandbox-a,bichard7-sandbox-b,bichard7-sandbox-c,bichard7-sandbox-shared,bichard7-shared,bichard7-test-current,bichard7-test-next,core-sandbox-dev,core-vpc-development,core-vpc-preproduction,core-vpc-sandbox,core-vpc-test,mi-platform-development,moj-network-operations-centre-preproduction,nomis-preproduction,opg-lpa-data-store-development,shared-services-dev,
+          INSTANCE_SCHEDULING_SKIP_ACCOUNTS: analytical-platform-data-development,analytical-platform-data-engineering-sandboxa,analytical-platform-development,bichard7-sandbox-a,bichard7-sandbox-b,bichard7-sandbox-c,bichard7-sandbox-shared,bichard7-shared,bichard7-test-current,bichard7-test-next,core-sandbox-dev,core-vpc-development,core-vpc-preproduction,core-vpc-sandbox,core-vpc-test,mi-platform-development,moj-network-operations-centre-preproduction,nomis-preproduction,opg-lpa-data-store-development,shared-services-dev,
     Metadata:
       Dockerfile: Dockerfile
       DockerContext: ./instance-scheduler
