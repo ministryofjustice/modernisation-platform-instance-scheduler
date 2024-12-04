@@ -61,13 +61,19 @@ func getNonProductionAccounts(environments string, skipAccountNames string) map[
 	for _, record := range allAccounts {
 		if rec, ok := record.(map[string]interface{}); ok {
 			for key, val := range rec {
+				log.Printf("Checking Account: %v", key)
 				// Skip if the account's name ends with "-production", for example: performance-hub-production will be skipped
 				if !strings.HasSuffix(key, "-production") && (len(skipAccountNames) < 1 || !strings.Contains(skipAccountNames, key)) {
+					log.Printf("++++++ Added Account: %v ++++++", key)
 					accounts[key] = val.(string)
 				}
 			}
 		}
 	}
+
+	// Print out the value of accounts before returning
+	log.Printf("Accounts in Scope: %v", accounts)
+
 	return accounts
 }
 
