@@ -14,7 +14,7 @@ func TestHandler(t *testing.T) {
 	t.Run("Test request", func(t *testing.T) {
 		// Accounts mi-platform-development and analytical-platform-data-development cause the main_int_test.go to fail because they are non-member accounts
 		// lacking the InstanceSchedulerAccess role, but they have the '-development' suffix typically present in member accounts.
-		os.Setenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS", "analytical-platform-data-development,analytical-platform-data-engineering-sandboxa,analytical-platform-development,bichard7-sandbox-a,bichard7-sandbox-b,bichard7-sandbox-c,bichard7-sandbox-shared,bichard7-shared,bichard7-test-current,bichard7-test-next,core-sandbox-dev,core-vpc-development,core-vpc-preproduction,core-vpc-sandbox,core-vpc-test,mi-platform-development,moj-network-operations-centre-preproduction,nomis-preproduction,opg-lpa-data-store-development,shared-services-dev,")
+		os.Setenv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS", "analytical-platform-data-development,analytical-platform-data-engineering-sandboxa,analytical-platform-development,bichard7-sandbox-a,bichard7-sandbox-b,bichard7-sandbox-c,bichard7-sandbox-shared,bichard7-shared,bichard7-test-current,bichard7-test-next,mi-platform-development,moj-network-operations-centre-preproduction,nomis-preproduction,opg-lpa-data-store-development,shared-services-dev,")
 
 		instanceScheduler := InstanceScheduler{
 			LoadDefaultConfig:                        LoadDefaultConfig,
