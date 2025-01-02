@@ -81,7 +81,7 @@ func (instanceScheduler *InstanceScheduler) handler(request InstanceSchedulingRe
 	secretsManagerClient := instanceScheduler.CreateSecretManagerClient(cfg)
 	environments := instanceScheduler.GetSecret(secretsManagerClient, secretId)
 
-	accounts := getNonProductionAccounts(environments, skipAccounts)
+	accounts := getNonProductionAccounts(environments)
 	for accName, accId := range accounts {
 		ec2Client := instanceScheduler.GetEc2ClientForMemberAccount(cfg, accName, accId)
 		rdsClient := instanceScheduler.GetRDSClientForMemberAccount(cfg, accName, accId)
