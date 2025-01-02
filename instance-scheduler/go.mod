@@ -1,3 +1,5 @@
+module github.com/modernisation-platform-instance-scheduler/instance-scheduler
+
 require (
 	github.com/aws/aws-lambda-go v1.47.0
 	github.com/aws/aws-sdk-go-v2 v1.32.7
