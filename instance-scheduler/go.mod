@@ -1,4 +1,3 @@
-module github.com/modernisation-platform-instance-scheduler/instance-scheduler
 
 require (
 	github.com/aws/aws-lambda-go v1.47.0
@@ -13,8 +12,6 @@ require (
 	github.com/aws/smithy-go v1.22.1
 	github.com/stretchr/testify v1.10.0
 )
-
-replace github.com/modernisation-platform-instance-scheduler/instance-scheduler => github.com/modernisation-platform-instance-scheduler/instance-scheduler firebreak8674
 
 require (
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.22 // indirect
