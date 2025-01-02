@@ -83,7 +83,7 @@ func getNonProductionAccounts(environments string) map[string]string {
                 // Include if the account's name is in the fetched list and does not end with "-production"
                 if !strings.HasSuffix(key, "-production") && contains(recordSlice, key) {
                     accounts[key] = val.(string)
-					fmt.Println("Added account:", val)
+					fmt.Println("Added account:", key)
 					
                 }
             }
