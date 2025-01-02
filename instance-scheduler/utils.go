@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/modernisation-platform-instance-scheduler/instance-scheduler/github_utils"
 )
 
 type ISSMGetParameter interface {
@@ -55,20 +56,34 @@ func CreateSecretManagerClient(config aws.Config) ISecretManagerGetSecretValue {
 func getNonProductionAccounts(environments string, skipAccountNames string) map[string]string {
 	accounts := make(map[string]string)
 
-	var allAccounts map[string]interface{}
-	json.Unmarshal([]byte(environments), &allAccounts)
-
-	for _, record := range allAccounts {
-		if rec, ok := record.(map[string]interface{}); ok {
-			for key, val := range rec {
-				// Skip if the account's name ends with "-production", for example: performance-hub-production will be skipped
-				if !strings.HasSuffix(key, "-production") && (len(skipAccountNames) < 1 || !strings.Contains(skipAccountNames, key)) {
-					accounts[key] = val.(string)
-				}
-			}
-		}
+	// Fetch the list of in-scope environments from modernisation-platform/environments
+	repoOwner := "ministryofjustice"
+	repoName := "modernisation-platform"
+	branch := "instance-scheduler-skip"
+	directory := "environments"
+	records, err := github_utils.FetchDirectory(repoOwner, repoName, branch, directory)
+	if err != nil {
+		log.Fatalf("Failed to fetch directory listing from GitHub: %v", err)
 	}
-	return accounts
+
+    // Parse the environments secret into a json object
+    var allAccounts map[string]interface{}
+    json.Unmarshal([]byte(environments), &allAccounts)
+
+    // Iterate over the fetched records and include environments based on the fetched list
+    for _, record := range allAccounts {
+        if rec, ok := record.(map[string]interface{}); ok {
+            for key, val := range rec {
+                // Include if the account's name is in the fetched list and does not end with "-production"
+                if !strings.HasSuffix(key, "-production") && contains(records, key) {
+                    accounts[key] = val.(string)
+					fmt.Println("Added account:", val)
+					
+                }
+            }
+        }
+    }
+    return accounts
 }
 
 func parseAction(action string) (string, error) {
@@ -84,4 +99,14 @@ func parseAction(action string) (string, error) {
 
 func LoadDefaultConfig() (aws.Config, error) {
 	return config.LoadDefaultConfig(context.TODO(), config.WithRegion("eu-west-2"))
+}
+
+// Helper function to check if a slice contains a string
+func contains(slice []string, item string) bool {
+    for _, s := range slice {
+        if s == item {
+            return true
+        }
+    }
+    return false
 }

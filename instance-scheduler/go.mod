@@ -12,6 +12,8 @@ require (
 	github.com/stretchr/testify v1.10.0
 )
 
+replace github.com/modernisation-platform-instance-scheduler/instance-scheduler => github.com/modernisation-platform-instance-scheduler/instance-scheduler firebreak8674
+
 require (
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.22 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.26 // indirect
