@@ -69,6 +69,9 @@ func getNonProductionAccounts(environments string) map[string]string {
 		log.Fatalf("Failed to fetch directory listing from GitHub: %v", err)
 	}
 
+    // Split the records string into a slice of strings
+    recordSlice := strings.Split(records, ",")
+
     // Parse the environments secret into a json object
     var allAccounts map[string]interface{}
     json.Unmarshal([]byte(environments), &allAccounts)
@@ -78,7 +81,7 @@ func getNonProductionAccounts(environments string) map[string]string {
         if rec, ok := record.(map[string]interface{}); ok {
             for key, val := range rec {
                 // Include if the account's name is in the fetched list and does not end with "-production"
-                if !strings.HasSuffix(key, "-production") && contains(records, key) {
+                if !strings.HasSuffix(key, "-production") && contains(recordSlice, key) {
                     accounts[key] = val.(string)
 					fmt.Println("Added account:", val)
 					
