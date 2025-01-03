@@ -77,7 +77,7 @@ func getNonProductionAccounts(environments string) map[string]string {
     json.Unmarshal([]byte(environments), &allAccounts)
 
     // Iterate over the fetched records and exclude environments obtained from the FetchDirectory function call
-    fmt.Println("Listing accounts to be excluded")
+    fmt.Println("Determining those accounts to be added to the scheduler")
     for _, record := range allAccounts {
         if rec, ok := record.(map[string]interface{}); ok {
             for key, val := range rec {
@@ -215,6 +215,10 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
 
             if accountType, ok := content["account-type"]; ok {
                 if accountType != "member" || (accountType == "member" && hasInstanceSchedulerSkip(content)) {
+                    fmt.Println("Processing file:", file.Name)
+                    fmt.Println("Account type:", accountType)
+                    fmt.Println("Has instance_scheduler_skip:", hasInstanceSchedulerSkip(content))
+
                     fileNameWithoutExt := strings.TrimSuffix(file.Name, ".json")
                     names := extractNames(content, fileNameWithoutExt)
                     for _, name := range names {
@@ -228,14 +232,13 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
     }
 
     finalResult := strings.Join(result, ",")
-    fmt.Println("Final comma-delimited list:", finalResult)
+    fmt.Println("Final comma-delimited account excluded list:", finalResult)
     return finalResult, nil
 }
 
 // Helper function to check if instance_scheduler_skip exists and is true
 func hasInstanceSchedulerSkip(content JSONFileContent) bool {
-
-    // Print the contents of JSONFileContent for debugging.
+    // Print the contents of JSONFileContent
     fmt.Println("JSONFileContent:", content)
 
     if skip, ok := content["instance_scheduler_skip"]; ok {
