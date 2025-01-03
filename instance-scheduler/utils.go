@@ -218,10 +218,11 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
                 // Test whether the account is of type "member"
                 if accountType == "member" {
                     fileNameWithoutExt := strings.TrimSuffix(file.Name, ".json")
+                    // Get the accounts from the json
                     names := extractNames(content, fileNameWithoutExt)
                     for _, name := range names {
                         fmt.Println("- Checking:", name)
-                        // Test whether the account is non-production
+                        // Test whether the account is production
                         if name != "production" {
                             // Test whether the instance_scheduler_skip flag is set for the account
                             if !hasInstanceSchedulerSkip(content) {
@@ -249,11 +250,8 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
 
 // Helper function to check if instance_scheduler_skip exists and is true
 func hasInstanceSchedulerSkip(content JSONFileContent) bool {
-    // The first if statement checks if the instance_scheduler_skip key exists and if its value is a slice of interface{}.
     if skip, ok := content["instance_scheduler_skip"].([]interface{}); ok {
-        // The for loop iterates over the slice and checks if any element is a string with the value "true".
         for _, skipValue := range skip {
-            // If such an element is found, the function returns true, else false.
             if skipStr, ok := skipValue.(string); ok && skipStr == "true" {
                 return true
             }
@@ -283,5 +281,6 @@ func extractNames(content JSONFileContent, envName string) []string {
             }
         }
     }
+    fmt.Println("Extracted names:", names)
     return names
 }
