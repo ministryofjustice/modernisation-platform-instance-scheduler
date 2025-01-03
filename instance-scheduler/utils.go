@@ -57,17 +57,17 @@ func CreateSecretManagerClient(config aws.Config) ISecretManagerGetSecretValue {
 }
 
 func getNonProductionAccounts(environments string) map[string]string {
-	accounts := make(map[string]string)
+    accounts := make(map[string]string)
 
-	// Fetch the list of in-scope environments from modernisation-platform/environments
-	repoOwner := "ministryofjustice"
-	repoName := "modernisation-platform"
-	branch := "instance-scheduler-skip"
-	directory := "environments"
-	records, err := FetchDirectory(repoOwner, repoName, branch, directory)
-	if err != nil {
-		log.Fatalf("Failed to fetch directory listing from GitHub: %v", err)
-	}
+    // Fetch the list of in-scope environments from modernisation-platform/environments
+    repoOwner := "ministryofjustice"
+    repoName := "modernisation-platform"
+    branch := "instance-scheduler-skip"
+    directory := "environments"
+    records, err := FetchDirectory(repoOwner, repoName, branch, directory)
+    if err != nil {
+        log.Fatalf("Failed to fetch directory listing from GitHub: %v", err)
+    }
 
     // Split the records string into a slice of strings
     recordSlice := strings.Split(records, ",")
@@ -76,15 +76,15 @@ func getNonProductionAccounts(environments string) map[string]string {
     var allAccounts map[string]interface{}
     json.Unmarshal([]byte(environments), &allAccounts)
 
-    // Iterate over the fetched records and include environments based on the fetched list
+    // Iterate over the fetched records and exclude environments obtained from the FetchDirectory function call
+    fmt.Println("Listing accounts to be included")
     for _, record := range allAccounts {
         if rec, ok := record.(map[string]interface{}); ok {
             for key, val := range rec {
-                // Include if the account's name is in the fetched list and does not end with "-production"
-                if !strings.HasSuffix(key, "-production") && contains(recordSlice, key) {
+                // Exclude if the account's name is in the fetched list or ends with "-production"
+                if !strings.HasSuffix(key, "-production") && !contains(recordSlice, key) {
                     accounts[key] = val.(string)
-					fmt.Println("Added account:", key)
-					
+                    fmt.Println("Added account:", key)
                 }
             }
         }
@@ -213,21 +213,37 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
                 continue
             }
 
-            if accountType, ok := content["account-type"]; ok && accountType == "member" {
-                fileNameWithoutExt := strings.TrimSuffix(file.Name, ".json")
-                names := extractNames(content, fileNameWithoutExt)
-                for _, name := range names {
-                    finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
-                    result = append(result, finalName)
-                    fmt.Println("Processed file:", file.Name, "Result:", finalName)
+            if accountType, ok := content["account-type"]; ok {
+                if accountType != "member" || (accountType == "member" && hasInstanceSchedulerSkip(content)) {
+                    fileNameWithoutExt := strings.TrimSuffix(file.Name, ".json")
+                    names := extractNames(content, fileNameWithoutExt)
+                    for _, name := range names {
+                        finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
+                        result = append(result, finalName)
+                        fmt.Println("Added excluded account: ", finalName)
+                    }
                 }
             }
         }
     }
 
     finalResult := strings.Join(result, ",")
-    fmt.Println("Final comma-delimited list:", finalResult)
+    fmt.Println("Final comma-delimited list of excluded accounts: ", finalResult)
     return finalResult, nil
+}
+
+// Helper function to check if instance_scheduler_skip exists and is true
+func hasInstanceSchedulerSkip(content JSONFileContent) bool {
+    if skip, ok := content["instance_scheduler_skip"]; ok {
+        if skipArray, ok := skip.([]interface{}); ok {
+            for _, skipValue := range skipArray {
+                if skipStr, ok := skipValue.(string); ok && skipStr == "true" {
+                    return true
+                }
+            }
+        }
+    }
+    return false
 }
 
 // extractNames recursively finds all "name" elements in the JSON content
@@ -236,18 +252,8 @@ func extractNames(content JSONFileContent, envName string) []string {
     for key, value := range content {
         if key == "name" {
             if nameStr, ok := value.(string); ok && nameStr != "production" {
-                // Check for instance_scheduler_skip
-                if skip, ok := content["instance_scheduler_skip"]; ok {
-                    if skipArray, ok := skip.([]interface{}); ok {
-                        for _, skipValue := range skipArray {
-                            if skipStr, ok := skipValue.(string); ok && skipStr == "true" {
-                                fmt.Println("Skipping environment due to instance_scheduler_skip: " + envName + "." + nameStr)
-                                continue
-                            }
-                        }
-                    }
-                }
                 names = append(names, nameStr)
+                fmt.Println("Including environment: " + envName + "." + nameStr)
             }
         } else if nestedContent, ok := value.(map[string]interface{}); ok {
             nestedNames := extractNames(nestedContent, envName)
