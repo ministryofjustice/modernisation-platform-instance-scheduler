@@ -224,14 +224,7 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
                         fmt.Println("- Checking:", name)
                         // Test whether the account is production
                         if name != "production" {
-                            // Test whether the instance_scheduler_skip flag is set for the account
-                            if !hasInstanceSchedulerSkip(content) {
-                                finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
-                                result = append(result, finalName)
-                                fmt.Println("Included account:", finalName)
-                            } else {
-                                fmt.Println("Skipping account due to instance_scheduler_skip:", name)
-                            }
+                            result = append(result, name)
                         } else {
                             fmt.Println("Skipping account due to production:", name)
                         }
@@ -260,9 +253,13 @@ func hasInstanceSchedulerSkip(content JSONFileContent) bool {
     return false
 }
 
-// extractNames recursively finds all "name" elements in the JSON content
+// extractNames recursively finds all "name" elements in the JSON content, excluding those with instance_scheduler_skip
 func extractNames(content JSONFileContent, envName string) []string {
     var names []string
+    if hasInstanceSchedulerSkip(content) {
+        fmt.Println("Skipping due to instance_scheduler_skip:", content)
+        return names
+    }
     for key, value := range content {
         switch v := value.(type) {
         case string:
