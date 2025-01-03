@@ -72,8 +72,8 @@ func (instanceScheduler *InstanceScheduler) handler(request InstanceSchedulingRe
 		}, err
 	}
 
-	skipAccounts := instanceScheduler.GetEnv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS")
-	log.Printf("INSTANCE_SCHEDULING_SKIP_ACCOUNTS=%v\n", skipAccounts)
+	// skipAccounts := instanceScheduler.GetEnv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS")
+	// log.Printf("INSTANCE_SCHEDULING_SKIP_ACCOUNTS=%v\n", skipAccounts)
 
 	ssmClient := instanceScheduler.CreateSSMClient(cfg)
 	secretId := instanceScheduler.GetParameter(ssmClient, "environment_management_arn")

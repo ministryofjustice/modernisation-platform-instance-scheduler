@@ -249,12 +249,13 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
 
 // Helper function to check if instance_scheduler_skip exists and is true
 func hasInstanceSchedulerSkip(content JSONFileContent) bool {
-    if skip, ok := content["instance_scheduler_skip"]; ok {
-        if skipArray, ok := skip.([]interface{}); ok {
-            for _, skipValue := range skipArray {
-                if skipStr, ok := skipValue.(string); ok && skipStr == "true" {
-                    return true
-                }
+    // The first if statement checks if the instance_scheduler_skip key exists and if its value is a slice of interface{}.
+    if skip, ok := content["instance_scheduler_skip"].([]interface{}); ok {
+        // The for loop iterates over the slice and checks if any element is a string with the value "true".
+        for _, skipValue := range skip {
+            // If such an element is found, the function returns true, else false.
+            if skipStr, ok := skipValue.(string); ok && skipStr == "true" {
+                return true
             }
         }
     }
@@ -265,15 +266,16 @@ func hasInstanceSchedulerSkip(content JSONFileContent) bool {
 func extractNames(content JSONFileContent, envName string) []string {
     var names []string
     for key, value := range content {
-        if key == "name" {
-            if nameStr, ok := value.(string); ok && nameStr != "production" {
-                names = append(names, nameStr)
+        switch v := value.(type) {
+        case string:
+            if key == "name" {
+                names = append(names, v)
             }
-        } else if nestedContent, ok := value.(map[string]interface{}); ok {
-            nestedNames := extractNames(nestedContent, envName)
+        case map[string]interface{}:
+            nestedNames := extractNames(v, envName)
             names = append(names, nestedNames...)
-        } else if nestedArray, ok := value.([]interface{}); ok {
-            for _, item := range nestedArray {
+        case []interface{}:
+            for _, item := range v {
                 if itemMap, ok := item.(map[string]interface{}); ok {
                     nestedNames := extractNames(itemMap, envName)
                     names = append(names, nestedNames...)
