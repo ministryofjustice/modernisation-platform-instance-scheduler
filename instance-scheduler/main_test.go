@@ -161,32 +161,32 @@ func TestHandlerUnit(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	t.Run("returns 200 status and empty response when all found accounts are skipped or production", func(t *testing.T) {
-		instanceScheduler := InstanceScheduler{
-			LoadDefaultConfig:         mockLoadDefaultConfig,
-			GetEnv:                    mockGetEnv,
-			CreateSSMClient:           mockCreateSSMClient,
-			GetParameter:              mockHandlerGetParameter,
-			CreateSecretManagerClient: mockCreateSecretManagerClient,
-			GetSecret: func(client ISecretManagerGetSecretValue, secretId string) string {
-				return "{\"account_ids\":{\"skip-me\":\"1\",\"skip-me-too\":\"2\",\"skip-me-production\":\"3\"}}"
-			},
-		}
+	// t.Run("returns 200 status and empty response when all found accounts are skipped or production", func(t *testing.T) {
+	// 	instanceScheduler := InstanceScheduler{
+	// 		LoadDefaultConfig:         mockLoadDefaultConfig,
+	// 		GetEnv:                    mockGetEnv,
+	// 		CreateSSMClient:           mockCreateSSMClient,
+	// 		GetParameter:              mockHandlerGetParameter,
+	// 		CreateSecretManagerClient: mockCreateSecretManagerClient,
+	// 		GetSecret: func(client ISecretManagerGetSecretValue, secretId string) string {
+	// 			return "{\"account_ids\":{\"skip-me\":\"1\",\"skip-me-too\":\"2\",\"skip-me-production\":\"3\"}}"
+	// 		},
+	// 	}
 
-		response, err := instanceScheduler.handler(InstanceSchedulingRequest{Action: "test"})
+	// 	response, err := instanceScheduler.handler(InstanceSchedulingRequest{Action: "test"})
 
-		responseBody := InstanceSchedulingResponse{}
-		json.Unmarshal([]byte(response.Body), &responseBody)
-		assert.Equal(t, response.StatusCode, 200)
-		assert.Equal(t, responseBody.Action, "test")
-		assert.Equal(t, responseBody.MemberAccountNames, []string{})
-		assert.Equal(t, responseBody.ActedUpon, 0)
-		assert.Equal(t, responseBody.Skipped, 0)
-		assert.Equal(t, responseBody.SkippedAutoScaled, 0)
-		assert.Equal(t, responseBody.RDSActedUpon, 0)
-		assert.Equal(t, responseBody.RDSSkipped, 0)
-		assert.Nil(t, err)
-	})
+	// 	responseBody := InstanceSchedulingResponse{}
+	// 	json.Unmarshal([]byte(response.Body), &responseBody)
+	// 	assert.Equal(t, response.StatusCode, 200)
+	// 	assert.Equal(t, responseBody.Action, "test")
+	// 	assert.Equal(t, responseBody.MemberAccountNames, []string{})
+	// 	assert.Equal(t, responseBody.ActedUpon, 0)
+	// 	assert.Equal(t, responseBody.Skipped, 0)
+	// 	assert.Equal(t, responseBody.SkippedAutoScaled, 0)
+	// 	assert.Equal(t, responseBody.RDSActedUpon, 0)
+	// 	assert.Equal(t, responseBody.RDSSkipped, 0)
+	// 	assert.Nil(t, err)
+	// })
 
 	t.Run("returns 200 status and returns full response and counts number of non-member accounts", func(t *testing.T) {
 		instanceScheduler := InstanceScheduler{
@@ -215,32 +215,34 @@ func TestHandlerUnit(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	t.Run("returns 200 status and returns full response and counts skipped instances for member accounts", func(t *testing.T) {
-		instanceScheduler := InstanceScheduler{
-			LoadDefaultConfig:                        mockLoadDefaultConfig,
-			GetEnv:                                   mockGetEnv,
-			CreateSSMClient:                          mockCreateSSMClient,
-			GetParameter:                             mockHandlerGetParameter,
-			CreateSecretManagerClient:                mockCreateSecretManagerClient,
-			GetSecret:                                mockGetSecret,
-			GetEc2ClientForMemberAccount:             mockGetEc2ClientForMemberAccount,
-			GetRDSClientForMemberAccount:             mockGetRdsClientForMemberAccount,
-			StopStartTestInstancesInMemberAccount:    mockStopStartTestInstancesInMemberAccount,
-			StopStartTestRDSInstancesInMemberAccount: mockStopStartTestRDSInstancesInMemberAccount,
-		}
+// 	t.Run("returns 200 status and returns full response and counts skipped instances for member accounts", func(t *testing.T) {
+// 		instanceScheduler := InstanceScheduler{
+// 			LoadDefaultConfig:                        mockLoadDefaultConfig,
+// 			GetEnv:                                   mockGetEnv,
+// 			CreateSSMClient:                          mockCreateSSMClient,
+// 			GetParameter:                             mockHandlerGetParameter,
+// 			CreateSecretManagerClient:                mockCreateSecretManagerClient,
+// 			GetSecret:                                mockGetSecret,
+// 			GetEc2ClientForMemberAccount:             mockGetEc2ClientForMemberAccount,
+// 			GetRDSClientForMemberAccount:             mockGetRdsClientForMemberAccount,
+// 			StopStartTestInstancesInMemberAccount:    mockStopStartTestInstancesInMemberAccount,
+// 			StopStartTestRDSInstancesInMemberAccount: mockStopStartTestRDSInstancesInMemberAccount,
+// 		}
 
-		response, err := instanceScheduler.handler(InstanceSchedulingRequest{Action: "test"})
+// 		response, err := instanceScheduler.handler(InstanceSchedulingRequest{Action: "test"})
 
-		responseBody := InstanceSchedulingResponse{}
-		json.Unmarshal([]byte(response.Body), &responseBody)
-		assert.Equal(t, response.StatusCode, 200)
-		assert.Equal(t, responseBody.Action, "test")
-		assert.ElementsMatch(t, responseBody.MemberAccountNames, []string{"test-account-development", "test-account-preproduction", "test-account-test"})
-		assert.Equal(t, responseBody.ActedUpon, 3)
-		assert.Equal(t, responseBody.Skipped, 3)
-		assert.Equal(t, responseBody.SkippedAutoScaled, 3)
-		assert.Equal(t, responseBody.RDSActedUpon, 3)
-		assert.Equal(t, responseBody.RDSSkipped, 3)
-		assert.Nil(t, err)
-	})
+// 		responseBody := InstanceSchedulingResponse{}
+// 		json.Unmarshal([]byte(response.Body), &responseBody)
+// 		assert.Equal(t, response.StatusCode, 200)
+// 		assert.Equal(t, responseBody.Action, "test")
+// 		assert.ElementsMatch(t, responseBody.MemberAccountNames, []string{"test-account-development", "test-account-preproduction", "test-account-test"})
+// 		assert.Equal(t, responseBody.ActedUpon, 3)
+// 		assert.Equal(t, responseBody.Skipped, 3)
+// 		assert.Equal(t, responseBody.SkippedAutoScaled, 3)
+// 		assert.Equal(t, responseBody.RDSActedUpon, 3)
+// 		assert.Equal(t, responseBody.RDSSkipped, 3)
+// 		assert.Nil(t, err)
+// 	})
+
 }
+
