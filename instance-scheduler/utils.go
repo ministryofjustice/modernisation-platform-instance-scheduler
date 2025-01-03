@@ -77,7 +77,7 @@ func getNonProductionAccounts(environments string) map[string]string {
     json.Unmarshal([]byte(environments), &allAccounts)
 
     // Iterate over the fetched records and exclude environments obtained from the FetchDirectory function call
-    fmt.Println("Listing accounts to be included")
+    fmt.Println("Listing accounts to be excluded")
     for _, record := range allAccounts {
         if rec, ok := record.(map[string]interface{}); ok {
             for key, val := range rec {
@@ -220,7 +220,7 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
                     for _, name := range names {
                         finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
                         result = append(result, finalName)
-                        fmt.Println("Added excluded account: ", finalName)
+                        fmt.Println("Added account to excluded list:", finalName)
                     }
                 }
             }
@@ -228,12 +228,16 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
     }
 
     finalResult := strings.Join(result, ",")
-    fmt.Println("Final comma-delimited list of excluded accounts: ", finalResult)
+    fmt.Println("Final comma-delimited list:", finalResult)
     return finalResult, nil
 }
 
 // Helper function to check if instance_scheduler_skip exists and is true
 func hasInstanceSchedulerSkip(content JSONFileContent) bool {
+
+    // Print the contents of JSONFileContent for debugging.
+    fmt.Println("JSONFileContent:", content)
+
     if skip, ok := content["instance_scheduler_skip"]; ok {
         if skipArray, ok := skip.([]interface{}); ok {
             for _, skipValue := range skipArray {
@@ -253,7 +257,6 @@ func extractNames(content JSONFileContent, envName string) []string {
         if key == "name" {
             if nameStr, ok := value.(string); ok && nameStr != "production" {
                 names = append(names, nameStr)
-                fmt.Println("Including environment: " + envName + "." + nameStr)
             }
         } else if nestedContent, ok := value.(map[string]interface{}); ok {
             nestedNames := extractNames(nestedContent, envName)
