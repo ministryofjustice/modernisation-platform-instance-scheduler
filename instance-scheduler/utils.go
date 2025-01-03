@@ -253,27 +253,18 @@ func hasInstanceSchedulerSkip(content JSONFileContent) bool {
     return false
 }
 
-// extractNames recursively finds all "name" elements in the JSON content, excluding those with instance_scheduler_skip
+// extractNames finds all "name" elements in the "environments" array, excluding those with instance_scheduler_skip
 func extractNames(content JSONFileContent, envName string) []string {
     var names []string
-    if hasInstanceSchedulerSkip(content) {
-        fmt.Println("Skipping due to instance_scheduler_skip:", content)
-        return names
-    }
-    for key, value := range content {
-        switch v := value.(type) {
-        case string:
-            if key == "name" {
-                names = append(names, v)
-            }
-        case map[string]interface{}:
-            nestedNames := extractNames(v, envName)
-            names = append(names, nestedNames...)
-        case []interface{}:
-            for _, item := range v {
-                if itemMap, ok := item.(map[string]interface{}); ok {
-                    nestedNames := extractNames(itemMap, envName)
-                    names = append(names, nestedNames...)
+    if environments, ok := content["environments"].([]interface{}); ok {
+        for _, env := range environments {
+            if envMap, ok := env.(map[string]interface{}); ok {
+                if hasInstanceSchedulerSkip(envMap) {
+                    fmt.Println("Skipping due to instance_scheduler_skip:", envMap)
+                    continue
+                }
+                if name, ok := envMap["name"].(string); ok {
+                    names = append(names, name)
                 }
             }
         }
