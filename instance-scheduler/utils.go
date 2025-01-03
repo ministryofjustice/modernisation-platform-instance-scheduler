@@ -168,9 +168,6 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
     query.Set("ref", branch)
     u.RawQuery = query.Encode()
 
-    // Print the constructed URL for debugging
-    fmt.Println("Constructed URL:", u.String())
-
     // Create a new HTTP request
     req, err := http.NewRequest("GET", u.String(), nil)
     if err != nil {
@@ -234,23 +231,6 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
     finalResult := strings.Join(result, ",")
     fmt.Println("Final comma-delimited account excluded list:", finalResult)
     return finalResult, nil
-}
-
-// Helper function to check if instance_scheduler_skip exists and is true
-func hasInstanceSchedulerSkip(content JSONFileContent) bool {
-    // Print the contents of JSONFileContent
-    fmt.Println("JSONFileContent:", content)
-
-    if skip, ok := content["instance_scheduler_skip"]; ok {
-        if skipArray, ok := skip.([]interface{}); ok {
-            for _, skipValue := range skipArray {
-                if skipStr, ok := skipValue.(string); ok && skipStr == "true" {
-                    return true
-                }
-            }
-        }
-    }
-    return false
 }
 
 // extractNames recursively finds all "name" elements in the JSON content
