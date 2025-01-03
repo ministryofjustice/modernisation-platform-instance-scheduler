@@ -222,7 +222,7 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
                         if !strings.HasSuffix(name, "-production") {
                             finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
                             result = append(result, finalName)
-                            fmt.Println("Added account to excluded list:", finalName)
+                            fmt.Println("Added account to list:", finalName)
                         }
                     }
                 }
