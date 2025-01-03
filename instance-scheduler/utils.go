@@ -233,6 +233,23 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
     return finalResult, nil
 }
 
+// Helper function to check if instance_scheduler_skip exists and is true
+func hasInstanceSchedulerSkip(content JSONFileContent) bool {
+    // Print the contents of JSONFileContent
+    fmt.Println("JSONFileContent:", content)
+
+    if skip, ok := content["instance_scheduler_skip"]; ok {
+        if skipArray, ok := skip.([]interface{}); ok {
+            for _, skipValue := range skipArray {
+                if skipStr, ok := skipValue.(string); ok && skipStr == "true" {
+                    return true
+                }
+            }
+        }
+    }
+    return false
+}
+
 // extractNames recursively finds all "name" elements in the JSON content
 func extractNames(content JSONFileContent, envName string) []string {
     var names []string
