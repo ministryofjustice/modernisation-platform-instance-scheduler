@@ -207,7 +207,7 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
     for _, file := range files {
         // Only process JSON files
         if file.Type == "file" && strings.HasSuffix(file.Name, ".json") {
-            fmt.Println("Processing file:", file.Name)
+            fmt.Println("**** Processing file:", file.Name)
             rawURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", repoOwner, repoName, branch, file.Path)
             content, err := FetchJSON(rawURL)
             if err != nil {
@@ -215,17 +215,24 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
                 continue
             }
             if accountType, ok := content["account-type"]; ok {
+                // Test whether the account is of type "member"
                 if accountType == "member" {
                     fileNameWithoutExt := strings.TrimSuffix(file.Name, ".json")
                     names := extractNames(content, fileNameWithoutExt)
                     for _, name := range names {
-                        fmt.Println("Checking:", name)
-                        if !strings.HasSuffix(name, "-production") && !hasInstanceSchedulerSkip(content) {
-                            finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
-                            result = append(result, finalName)
-                            fmt.Println("Included account:", finalName)
+                        fmt.Println("- Checking:", name)
+                        // Test whether the account is non-production
+                        if !strings.HasSuffix(name, "-production") {
+                            // Test whether the instance_scheduler_skip flag is set for the account
+                            if !hasInstanceSchedulerSkip(content) {
+                                finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
+                                result = append(result, finalName)
+                                fmt.Println("Included account:", finalName)
+                            } else {
+                                fmt.Println("Skipping account due to instance_scheduler_skip:", name)
+                            }
                         } else {
-                            fmt.Println("Skipping account due to production or instance_scheduler_skip:", name)
+                            fmt.Println("Skipping account due to production:", name)
                         }
                     }
                 } else {
