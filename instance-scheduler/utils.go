@@ -222,7 +222,7 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
                     for _, name := range names {
                         fmt.Println("- Checking:", name)
                         // Test whether the account is non-production
-                        if !strings.HasSuffix(name, "-production") {
+                        if name != "production" {
                             // Test whether the instance_scheduler_skip flag is set for the account
                             if !hasInstanceSchedulerSkip(content) {
                                 finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
