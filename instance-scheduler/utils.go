@@ -76,13 +76,13 @@ func getNonProductionAccounts(environments string) map[string]string {
     var allAccounts map[string]interface{}
     json.Unmarshal([]byte(environments), &allAccounts)
 
-    // Iterate over the fetched records and exclude environments obtained from the FetchDirectory function call
+    // Iterate over the fetched records and include environments based on the fetched list
     fmt.Println("Determining those accounts to be added to the scheduler")
     for _, record := range allAccounts {
         if rec, ok := record.(map[string]interface{}); ok {
             for key, val := range rec {
-                // Exclude if the account's name is in the fetched list or ends with "-production"
-                if !strings.HasSuffix(key, "-production") && !contains(recordSlice, key) {
+                // Include if the account's name is in the fetched list
+                if contains(recordSlice, key) {
                     accounts[key] = val.(string)
                     fmt.Println("Added account:", key)
                 }
@@ -168,6 +168,9 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
     query.Set("ref", branch)
     u.RawQuery = query.Encode()
 
+    // Print the constructed URL for debugging
+    fmt.Println("Constructed URL:", u.String())
+
     // Create a new HTTP request
     req, err := http.NewRequest("GET", u.String(), nil)
     if err != nil {
@@ -211,17 +214,16 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
             }
 
             if accountType, ok := content["account-type"]; ok {
-                if accountType != "member" || (accountType == "member" && hasInstanceSchedulerSkip(content)) {
-                    fmt.Println("Processing file:", file.Name)
-                    fmt.Println("Account type:", accountType)
-                    fmt.Println("Has instance_scheduler_skip:", hasInstanceSchedulerSkip(content))
-
+                skip := hasInstanceSchedulerSkip(content)
+                if accountType != "member" || (accountType == "member" && skip) {
                     fileNameWithoutExt := strings.TrimSuffix(file.Name, ".json")
                     names := extractNames(content, fileNameWithoutExt)
                     for _, name := range names {
-                        finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
-                        result = append(result, finalName)
-                        fmt.Println("Added account to excluded list:", finalName)
+                        if !strings.HasSuffix(name, "-production") {
+                            finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
+                            result = append(result, finalName)
+                            fmt.Println("Added account to excluded list:", finalName)
+                        }
                     }
                 }
             }
@@ -235,8 +237,6 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
 
 // Helper function to check if instance_scheduler_skip exists and is true
 func hasInstanceSchedulerSkip(content JSONFileContent) bool {
-    // Print the contents of JSONFileContent
-    fmt.Println("JSONFileContent:", content)
 
     if skip, ok := content["instance_scheduler_skip"]; ok {
         if skipArray, ok := skip.([]interface{}); ok {
