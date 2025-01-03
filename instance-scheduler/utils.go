@@ -218,13 +218,23 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
                 // Test whether the account is of type "member"
                 if accountType == "member" {
                     fileNameWithoutExt := strings.TrimSuffix(file.Name, ".json")
-                    // Get the accounts from the json
                     names := extractNames(content, fileNameWithoutExt)
+                    if len(names) == 0 {
+                        fmt.Println("No names extracted, skipping file:", file.Name)
+                        continue
+                    }
                     for _, name := range names {
                         fmt.Println("- Checking:", name)
                         // Test whether the account is production
                         if name != "production" {
-                            result = append(result, name)
+                            // Test whether the instance_scheduler_skip flag is set for the account
+                            if !hasInstanceSchedulerSkip(content) {
+                                finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
+                                result = append(result, finalName)
+                                fmt.Println("Included account:", finalName)
+                            } else {
+                                fmt.Println("Skipping account due to instance_scheduler_skip:", name)
+                            }
                         } else {
                             fmt.Println("Skipping account due to production:", name)
                         }
@@ -235,10 +245,9 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
             }
         }
     }
-    
+
     finalResult := strings.Join(result, ",")
     return finalResult, nil
-
 }
 
 // Helper function to check if instance_scheduler_skip exists and is true
