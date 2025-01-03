@@ -84,7 +84,7 @@ func getNonProductionAccounts(environments string) map[string]string {
                 // Include if the account's name is in the fetched list
                 if contains(recordSlice, key) {
                     accounts[key] = val.(string)
-                    fmt.Println("Added account:", key)
+                    fmt.Println("Added account to list:", key)
                 }
             }
         }
@@ -213,15 +213,16 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
                 continue
             }
             if accountType, ok := content["account-type"]; ok {
-                skip := hasInstanceSchedulerSkip(content)
-                if accountType == "member" && !skip {
+                if accountType == "member" {
                     fileNameWithoutExt := strings.TrimSuffix(file.Name, ".json")
                     names := extractNames(content, fileNameWithoutExt)
                     for _, name := range names {
-                        if !strings.HasSuffix(name, "-production") {
+                        if !strings.HasSuffix(name, "-production") && !hasInstanceSchedulerSkip(content) {
                             finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
                             result = append(result, finalName)
                             fmt.Println("Added account to list:", finalName)
+                        } else {
+                            fmt.Println("Skipping account due to production or instance_scheduler_skip:", name)
                         }
                     }
                 }
@@ -230,13 +231,11 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
     }
 
     finalResult := strings.Join(result, ",")
-    fmt.Println("Final comma-delimited account excluded list:", finalResult)
     return finalResult, nil
 }
 
 // Helper function to check if instance_scheduler_skip exists and is true
 func hasInstanceSchedulerSkip(content JSONFileContent) bool {
-
     if skip, ok := content["instance_scheduler_skip"]; ok {
         if skipArray, ok := skip.([]interface{}); ok {
             for _, skipValue := range skipArray {

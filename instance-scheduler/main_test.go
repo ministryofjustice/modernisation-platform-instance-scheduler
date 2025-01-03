@@ -243,4 +243,6 @@ func TestHandlerUnit(t *testing.T) {
 // 		assert.Equal(t, responseBody.RDSSkipped, 3)
 // 		assert.Nil(t, err)
 // 	})
-// }
+
+}
+
