@@ -155,7 +155,6 @@ func FetchJSON(rawURL string) (JSONFileContent, error) {
     return content, nil
 }
 
-// FetchDirectory fetches the list of files in a GitHub directory using the GitHub API
 func FetchDirectory(repoOwner, repoName, branch, directory string) (string, error) {
     baseURL := "https://api.github.com/repos"
     u, err := url.Parse(baseURL)
@@ -224,20 +223,9 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
                         continue
                     }
                     for _, name := range names {
-                        fmt.Println("- Checking:", name)
-                        // Test whether the account is production
-                        if name != "production" {
-                            // Test whether the instance_scheduler_skip flag is set for the account
-                            if !hasInstanceSchedulerSkip(content) {
-                                finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
-                                result = append(result, finalName)
-                                fmt.Println("Included account:", finalName)
-                            } else {
-                                fmt.Println("Skipping account due to instance_scheduler_skip:", name)
-                            }
-                        } else {
-                            fmt.Println("Skipping account due to production:", name)
-                        }
+                        finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
+                        result = append(result, finalName)
+                        fmt.Println("Included account:", finalName)
                     }
                 } else {
                     fmt.Println("Skipping account due to non-member account:", file.Name)
@@ -262,17 +250,22 @@ func hasInstanceSchedulerSkip(content JSONFileContent) bool {
     return false
 }
 
-// extractNames finds all "name" elements in the "environments" array, excluding those with instance_scheduler_skip
+// extractNames finds all "name" elements in the "environments" array, excluding those with instance_scheduler_skip or production
 func extractNames(content JSONFileContent, envName string) []string {
     var names []string
     if environments, ok := content["environments"].([]interface{}); ok {
         for _, env := range environments {
             if envMap, ok := env.(map[string]interface{}); ok {
-                if hasInstanceSchedulerSkip(envMap) {
-                    fmt.Println("Skipping due to instance_scheduler_skip:", envMap)
-                    continue
-                }
                 if name, ok := envMap["name"].(string); ok {
+                    if hasInstanceSchedulerSkip(envMap) {
+                        fmt.Println("Skipping due to instance_scheduler_skip:", envName + "." + name)
+                        continue
+                    }
+                    if name == "production" {
+                        fmt.Println("Skipping due to production:", envName + "." + name)
+                        continue
+                    }
+                    fmt.Println("Including name:", envName + "." + name)
                     names = append(names, name)
                 }
             }
