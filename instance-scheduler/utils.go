@@ -212,10 +212,9 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
                 fmt.Println("Error fetching", rawURL, ":", err)
                 continue
             }
-
             if accountType, ok := content["account-type"]; ok {
                 skip := hasInstanceSchedulerSkip(content)
-                if accountType != "member" || (accountType == "member" && skip) {
+                if accountType == "member" && !skip {
                     fileNameWithoutExt := strings.TrimSuffix(file.Name, ".json")
                     names := extractNames(content, fileNameWithoutExt)
                     for _, name := range names {
