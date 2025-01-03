@@ -203,9 +203,11 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
     }
 
     var result []string
+
     for _, file := range files {
         // Only process JSON files
         if file.Type == "file" && strings.HasSuffix(file.Name, ".json") {
+            fmt.Println("Processing file:", file.Name)
             rawURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", repoOwner, repoName, branch, file.Path)
             content, err := FetchJSON(rawURL)
             if err != nil {
@@ -217,21 +219,25 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
                     fileNameWithoutExt := strings.TrimSuffix(file.Name, ".json")
                     names := extractNames(content, fileNameWithoutExt)
                     for _, name := range names {
+                        fmt.Println("Checking:", name)
                         if !strings.HasSuffix(name, "-production") && !hasInstanceSchedulerSkip(content) {
                             finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
                             result = append(result, finalName)
-                            fmt.Println("Added account to list:", finalName)
+                            fmt.Println("Included account:", finalName)
                         } else {
                             fmt.Println("Skipping account due to production or instance_scheduler_skip:", name)
                         }
                     }
+                } else {
+                    fmt.Println("Skipping account due to non-member account:", file.Name)
                 }
             }
         }
     }
-
+    
     finalResult := strings.Join(result, ",")
     return finalResult, nil
+
 }
 
 // Helper function to check if instance_scheduler_skip exists and is true
