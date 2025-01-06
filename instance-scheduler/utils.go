@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"strings"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -80,7 +81,7 @@ func getNonProductionAccounts(environments string) map[string]string {
                 // Include if the account's name is in the fetched list
                 if contains(recordSlice, key) {
                     accounts[key] = val.(string)
-                    log.Printf("getNonProductionAccounts - Added account to list:", key)
+                    fmt.Println("getNonProductionAccounts - Added account to list:", key)
                 }
             }
         }
