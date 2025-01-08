@@ -4,6 +4,8 @@
 package main
 
 import (
+    "net/http"
+    "net/http/httptest"
     "testing"
     "github.com/stretchr/testify/assert"
 )
@@ -47,9 +49,6 @@ func TestFetchGitHubData(t *testing.T) {
         w.Write([]byte(`[{"name": "file1.json", "path": "path/to/file1.json", "type": "file"}]`))
     }))
     defer server.Close()
-
-    // Override the base URL to point to the mock server
-    baseURL := server.URL
 
     // Call fetchGitHubData with the mock server URL
     body, err := fetchGitHubData(repoOwner, repoName, branch, directory)
@@ -147,7 +146,7 @@ func TestHasInstanceSchedulerSkip(t *testing.T) {
 // Unit test for extractNames
 func TestExtractNames(t *testing.T) {
 
-    mockJSONContent = JSONFileContent{
+    mockJSONContent := JSONFileContent{
         "environments": []interface{}{
             map[string]interface{}{
                 "name": "development",
