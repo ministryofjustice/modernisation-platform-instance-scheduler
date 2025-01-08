@@ -49,11 +49,12 @@ func FetchJSON(rawURL string) (JSONFileContent, error) {
     return content, nil
 }
 
-func FetchDirectory(repoOwner, repoName, branch, directory string) (string, error) {
+// fetches the environments JSON data from GitHub
+func fetchGitHubData(repoOwner, repoName, branch, directory string) ([]byte, error) {
     baseURL := "https://api.github.com/repos"
     u, err := url.Parse(baseURL)
     if err != nil {
-        return "", fmt.Errorf("failed to parse base URL: %w", err)
+        return nil, fmt.Errorf("failed to parse base URL: %w", err)
     }
 
     u.Path = strings.Join([]string{u.Path, repoOwner, repoName, "contents", directory}, "/")
@@ -67,7 +68,7 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
     // Create a new HTTP request
     req, err := http.NewRequest("GET", u.String(), nil)
     if err != nil {
-        return "", fmt.Errorf("failed to create HTTP request: %w", err)
+        return nil, fmt.Errorf("failed to create HTTP request: %w", err)
     }
 
     // Set the User-Agent header (GitHub API requires a User-Agent header)
@@ -77,60 +78,31 @@ func FetchDirectory(repoOwner, repoName, branch, directory string) (string, erro
     client := &http.Client{}
     resp, err := client.Do(req)
     if err != nil {
-        return "", fmt.Errorf("failed to fetch directory listing: %w", err)
+        return nil, fmt.Errorf("failed to fetch directory listing: %w", err)
     }
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return "", fmt.Errorf("non-200 status code: %d", resp.StatusCode)
+        return nil, fmt.Errorf("non-200 status code: %d", resp.StatusCode)
     }
 
     body, err := ioutil.ReadAll(resp.Body)
     if err != nil {
-        return "", fmt.Errorf("failed to read response body: %w", err)
+        return nil, fmt.Errorf("failed to read response body: %w", err)
     }
 
+    return body, nil
+}
+
+// processGitHubData processes the JSON data and returns a slice of GitHubFile
+func processGitHubData(body []byte) ([]GitHubFile, error) {
     var files []GitHubFile
     if err := json.Unmarshal(body, &files); err != nil {
-        return "", fmt.Errorf("failed to unmarshal JSON: %w", err)
+        return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
     }
-
-    var result []string
-
-    for _, file := range files {
-        // Only process JSON files
-        if file.Type == "file" && strings.HasSuffix(file.Name, ".json") {
-            fmt.Println("**** Processing file:", file.Name)
-            rawURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", repoOwner, repoName, branch, file.Path)
-            content, err := FetchJSON(rawURL)
-            if err != nil {
-                fmt.Println("Error fetching", rawURL, ":", err)
-                continue
-            }
-            if accountType, ok := content["account-type"]; ok {
-                // Test whether the account is of type "member"
-                if accountType == "member" {
-                    fileNameWithoutExt := strings.TrimSuffix(file.Name, ".json")
-                    names := extractNames(content, fileNameWithoutExt)
-                    if len(names) == 0 {
-                        fmt.Println("FetchDirectory - No names extracted, skipping file:", file.Name)
-                        continue
-                    }
-                    for _, name := range names {
-                        finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
-                        result = append(result, finalName)
-                        fmt.Println("FetchDirectory - Processed JSON - Included account:", finalName)
-                    }
-                } else {
-                    fmt.Println("FetchDirectory - Skipping account due to non-member account:", file.Name)
-                }
-            }
-        }
-    }
-
-    finalResult := strings.Join(result, ",")
-    return finalResult, nil
+    return files, nil
 }
+
 
 // Helper function to check if instance_scheduler_skip exists and is true
 func hasInstanceSchedulerSkip(content JSONFileContent) bool {
