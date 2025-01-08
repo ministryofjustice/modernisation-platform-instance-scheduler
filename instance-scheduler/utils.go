@@ -82,21 +82,22 @@ func getNonProductionAccounts(environments string) map[string]string {
         if file.Type == "file" && strings.HasSuffix(file.Name, ".json") {
             fmt.Println("**** Processing file:", file.Name)
             rawURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", repoOwner, repoName, branch, file.Path)
-			// The extracted json is held in the content variable.
+			// The extracted json is held in the content
 			content, err := FetchJSON(rawURL)
             if err != nil {
                 fmt.Println("Error fetching", rawURL, ":", err)
                 continue
             }
             if accountType, ok := content["account-type"]; ok {
-                // Test whether the account is of type "member". We want to exclude all accounts types that are not member.
+                // Check whether the account is of type "member". We want to exclude all accounts types that are not member.
                 if accountType == "member" {
                     fileNameWithoutExt := strings.TrimSuffix(file.Name, ".json")
+					fmt.Println("Account is of type member:", fileNameWithoutExt)
 					// This returns a list of accounts for each environment that filters out 1) Production accounts, and 2) Those accounts with the instance_scheduler_skip flag.
                     names := extractNames(content, fileNameWithoutExt)
 					// Avoids returning an empty list as there may be member environments that have no accounts to be included in the scheduler.
 					if len(names) == 0 {
-                        fmt.Println("FetchDirectory - No names extracted, skipping file:", file.Name)
+                        fmt.Println("No names extracted, skipping file:", file.Name)
                         continue
                     }
 					// Adds the environment-name.account-name to the list.
