@@ -57,13 +57,14 @@ func getNonProductionAccounts(environments string) map[string]string {
     accounts := make(map[string]string)
 
     // Fetch the list of in-scope environments from modernisation-platform/environments
+    baseURL := "https://api.github.com/repos"
     repoOwner := "ministryofjustice"
     repoName := "modernisation-platform"
-    branch := "instance-scheduler-skip"
+    branch := "prep-for-issue/8674"
     directory := "environments"
 
     // Step 1: Fetch the JSON data from GitHub
-    body, err := fetchGitHubData(repoOwner, repoName, branch, directory)
+    body, err := fetchGitHubData(baseURL, repoOwner, repoName, branch, directory)
     if err != nil {
         log.Fatalf("getNonProductionAccounts - Failed to fetch directory listing from GitHub: %v", err)
     }

@@ -2,14 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	//"errors"
-	//"log"
-	"strings"
 	"fmt"
     "net/http"
     "net/url"
-    "io/ioutil"
-
+    "io"
+    "github.com/tidwall/gjson"
 )
 
 // Additional functions that parse json data from the environments directory obtail the full list of in-scope non-prod environments.
@@ -36,28 +33,29 @@ func FetchJSON(rawURL string) (JSONFileContent, error) {
         return nil, fmt.Errorf("non-200 status code: %d", resp.StatusCode)
     }
 
-    body, err := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
     if err != nil {
         return nil, fmt.Errorf("failed to read response body: %w", err)
     }
 
     var content JSONFileContent
-    if err := json.Unmarshal(body, &content); err != nil {
-        return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
-    }
+    err = json.Unmarshal(body, &content)
+	  if err != nil {
+		  return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
+	  }
 
     return content, nil
 }
 
 // fetches the environments JSON data from GitHub
-func fetchGitHubData(repoOwner, repoName, branch, directory string) ([]byte, error) {
-    baseURL := "https://api.github.com/repos"
-    u, err := url.Parse(baseURL)
+func fetchGitHubData(baseURL, repoOwner, repoName, branch, directory string) ([]byte, error) {
+
+    //u, err := url.Parse(path.Join(baseURL, repoOwner, repoName, "contents", directory))
+    u, err := url.Parse(fmt.Sprintf("%s/%s/%s/contents/%s", baseURL, repoOwner, repoName, directory))
     if err != nil {
-        return nil, fmt.Errorf("failed to parse base URL: %w", err)
+        return nil, fmt.Errorf("failed to parse URL: %w", err)
     }
 
-    u.Path = strings.Join([]string{u.Path, repoOwner, repoName, "contents", directory}, "/")
     query := u.Query()
     query.Set("ref", branch)
     u.RawQuery = query.Encode()
@@ -86,7 +84,7 @@ func fetchGitHubData(repoOwner, repoName, branch, directory string) ([]byte, err
         return nil, fmt.Errorf("non-200 status code: %d", resp.StatusCode)
     }
 
-    body, err := ioutil.ReadAll(resp.Body)
+    body, err := io.ReadAll(resp.Body)
     if err != nil {
         return nil, fmt.Errorf("failed to read response body: %w", err)
     }
@@ -97,18 +95,20 @@ func fetchGitHubData(repoOwner, repoName, branch, directory string) ([]byte, err
 // processGitHubData processes the JSON data and returns a slice of GitHubFile
 func processGitHubData(body []byte) ([]GitHubFile, error) {
     var files []GitHubFile
-    if err := json.Unmarshal(body, &files); err != nil {
+    err := json.Unmarshal(body, &files)
+    if err != nil {
         return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
     }
     return files, nil
 }
 
 
-// Helper function to check if instance_scheduler_skip exists and is true
-func hasInstanceSchedulerSkip(content JSONFileContent) bool {
-    if skip, ok := content["instance_scheduler_skip"].([]interface{}); ok {
-        for _, skipValue := range skip {
-            if skipStr, ok := skipValue.(string); ok && skipStr == "true" {
+// hasInstanceSchedulerSkip checks if the instance_scheduler_skip field exists and contains "true"
+func hasInstanceSchedulerSkip(content gjson.Result) bool {
+    skip := content.Get("instance_scheduler_skip")
+    if skip.Exists() {
+        for _, value := range skip.Array() {
+            if value.String() == "true" {
                 return true
             }
         }
@@ -119,24 +119,33 @@ func hasInstanceSchedulerSkip(content JSONFileContent) bool {
 // extractNames finds all "name" elements in the "environments" array, excluding those with instance_scheduler_skip or production
 func extractNames(content JSONFileContent, envName string) []string {
     var names []string
-    if environments, ok := content["environments"].([]interface{}); ok {
-        for _, env := range environments {
-            if envMap, ok := env.(map[string]interface{}); ok {
-                if name, ok := envMap["name"].(string); ok {
-                    if hasInstanceSchedulerSkip(envMap) {
-                        fmt.Println("extractNames - Skipping due to instance_scheduler_skip:", envName + "." + name)
-                        continue
-                    }
-                    if name == "production" {
-                        fmt.Println("extractNames - Skipping due to production:", envName + "." + name)
-                        continue
-                    }
-                    fmt.Println("extractNames - Found name:", envName + "." + name)
-                    names = append(names, name)
-                }
-            }
-        }
+    jsonData, err := json.Marshal(content)
+    if err != nil {
+        fmt.Println("Failed to marshal JSON content:", err)
+        return names
     }
-    fmt.Println("extractNames - Extracted environment names from JSON:", names)
+
+    environments := gjson.GetBytes(jsonData, "environments")
+    environments.ForEach(func(_, env gjson.Result) bool {
+        name := env.Get("name").String()
+        if name == "" {
+            return true // continue
+        }
+
+        if hasInstanceSchedulerSkip(env) {
+            fmt.Println("extractNames - Skipping due to instance_scheduler_skip:", envName+"."+name)
+            return true // continue
+        }
+
+        if name == "production" {
+            fmt.Println("extractNames - Skipping due to production:", envName+"."+name)
+            return true // continue
+        }
+
+        fmt.Println("extractNames - Found name:", envName+"."+name)
+        names = append(names, name)
+        return true // continue
+    })
+
     return names
 }

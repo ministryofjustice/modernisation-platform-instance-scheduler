@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -29,7 +28,6 @@ type InstanceSchedulingResponse struct {
 
 type InstanceScheduler struct {
 	LoadDefaultConfig                        func() (aws.Config, error)
-	GetEnv                                   func(string) string
 	CreateSSMClient                          func(aws.Config) ISSMGetParameter
 	GetParameter                             func(client ISSMGetParameter, parameterName string) string
 	CreateSecretManagerClient                func(cfg aws.Config) ISecretManagerGetSecretValue
@@ -116,7 +114,6 @@ func (instanceScheduler *InstanceScheduler) handler(request InstanceSchedulingRe
 func main() {
 	InstanceScheduler := InstanceScheduler{
 		LoadDefaultConfig:                        LoadDefaultConfig,
-		GetEnv:                                   os.Getenv,
 		CreateSSMClient:                          CreateSSMClient,
 		GetParameter:                             getParameter,
 		CreateSecretManagerClient:                CreateSecretManagerClient,

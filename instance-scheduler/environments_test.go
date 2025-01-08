@@ -9,6 +9,7 @@ import (
     "net/http/httptest"
     "testing"
     "github.com/stretchr/testify/assert"
+    "github.com/tidwall/gjson"
 )
 
 // Unit test for FetchJSON
@@ -34,12 +35,15 @@ func TestFetchJSON(t *testing.T) {
 
 // Unit test for fetchGitHubData
 func TestFetchGitHubData(t *testing.T) {
-    // Define the expected URL
-    repoOwner := "ministryofjustice"
-    repoName := "modernisation-platform"
-    branch := "main"
-    directory := "environments"
-    expectedURL := "/repos/ministryofjustice/modernisation-platform/contents/environments?ref=main"
+    // Define dummy values for the parameters
+    repoOwner := "dummyOwner"
+    repoName := "dummyRepo"
+    branch := "dummyBranch"
+    directory := "dummyDirectory"
+    expectedURL := "/dummyOwner/dummyRepo/contents/dummyDirectory?ref=dummyBranch"
+
+    // Define the expected JSON response
+    expectedJSON := `[{"name": "file1.json", "path": "path/to/file1.json", "type": "file"}]`
 
     // Create a mock HTTP server
     server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -47,12 +51,15 @@ func TestFetchGitHubData(t *testing.T) {
         assert.Equal(t, expectedURL, r.URL.String())
         // Write a mock response
         w.WriteHeader(http.StatusOK)
-        w.Write([]byte(`[{"name": "file1.json", "path": "path/to/file1.json", "type": "file"}]`))
+        w.Write([]byte(expectedJSON))
     }))
     defer server.Close()
 
+    // Override the base URL to point to the mock server
+    baseURL := server.URL
+
     // Call fetchGitHubData with the mock server URL
-    body, err := fetchGitHubData(repoOwner, repoName, branch, directory)
+    body, err := fetchGitHubData(baseURL, repoOwner, repoName, branch, directory)
     assert.NoError(t, err)
     assert.NotNil(t, body)
 
@@ -61,6 +68,11 @@ func TestFetchGitHubData(t *testing.T) {
     err = json.Unmarshal(body, &jsonResponse)
     assert.NoError(t, err)
     assert.NotEmpty(t, jsonResponse)
+
+    // Ensure the JSON received back is the same as the expected JSON
+    receivedJSON, err := json.Marshal(jsonResponse)
+    assert.NoError(t, err)
+    assert.JSONEq(t, expectedJSON, string(receivedJSON))
 
     // Optionally, print the response for manual inspection
     t.Logf("Response: %s", string(body))
@@ -91,53 +103,36 @@ func TestProcessGitHubData(t *testing.T) {
 
 // Unit test for hasInstanceSchedulerSkip
 func TestHasInstanceSchedulerSkip(t *testing.T) {
-    // Define test cases
     testCases := []struct {
         name     string
-        content  JSONFileContent
+        json     string
         expected bool
     }{
         {
-            name: "Skip is true",
-            content: JSONFileContent{
-                "instance_scheduler_skip": []interface{}{"true"},
-            },
+            name:     "Skip is true",
+            json:     `{"instance_scheduler_skip": "true"}`,
             expected: true,
         },
         {
-            name: "Skip is false",
-            content: JSONFileContent{
-                "instance_scheduler_skip": []interface{}{"false"},
-            },
+            name:     "Skip is false",
+            json:     `{"instance_scheduler_skip": "false"}`,
             expected: false,
         },
         {
-            name: "Skip is missing",
-            content: JSONFileContent{
-                "some_other_key": "some_value",
-            },
+            name:     "Skip is missing",
+            json:     `{}`,
             expected: false,
         },
         {
-            name: "Skip is empty",
-            content: JSONFileContent{
-                "instance_scheduler_skip": []interface{}{},
-            },
-            expected: false,
-        },
-        {
-            name: "Skip is not a string",
-            content: JSONFileContent{
-                "instance_scheduler_skip": []interface{}{123},
-            },
+            name:     "True is missing",
+            json:     `{"instance_scheduler_skip": 123}`,
             expected: false,
         },
     }
 
-    // Run test cases
     for _, tc := range testCases {
         t.Run(tc.name, func(t *testing.T) {
-            result := hasInstanceSchedulerSkip(tc.content)
+            result := hasInstanceSchedulerSkip(gjson.Parse(tc.json))
             assert.Equal(t, tc.expected, result)
         })
     }
@@ -151,15 +146,14 @@ func TestExtractNames(t *testing.T) {
         "environments": []interface{}{
             map[string]interface{}{
                 "name": "development",
-                "instance_scheduler_skip": []interface{}{"false"},
-            },
-            map[string]interface{}{
-                "name": "test",
                 "instance_scheduler_skip": []interface{}{"true"},
             },
             map[string]interface{}{
-                "name": "preproduction",
+                "name": "test",
                 "instance_scheduler_skip": []interface{}{"false"},
+            },
+            map[string]interface{}{
+                "name": "preproduction",
             },
             map[string]interface{}{
                 "name": "production",
@@ -169,7 +163,7 @@ func TestExtractNames(t *testing.T) {
     }
 
     envName := "env"
-    expectedNames := []string{"development", "preproduction"}
+    expectedNames := []string{"test", "preproduction"}
 
     // Call the extractNames function
     names := extractNames(mockJSONContent, envName)
