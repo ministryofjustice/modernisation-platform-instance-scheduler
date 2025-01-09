@@ -54,7 +54,7 @@ func FetchJSON(rawURL string) (JSONFileContent, error) {
 func fetchGitHubData(baseURL, repoOwner, repoName, branch, directory string) ([]byte, error) {
 
     //u, err := url.Parse(path.Join(baseURL, repoOwner, repoName, "contents", directory))
-    u, err := url.Parse(fmt.Sprintf("%s/repos/%s/%s/contents/%s", baseURL, repoOwner, repoName, directory))
+    u, err := url.Parse(fmt.Sprintf("%s/%s/%s/contents/%s", baseURL, repoOwner, repoName, directory))
     if err != nil {
         return nil, fmt.Errorf("failed to parse URL: %w", err)
     }
