@@ -106,25 +106,29 @@ func processGitHubData(body []byte) ([]GitHubFile, error) {
 }
 
 
-// Helper function to check if instance_scheduler_skip exists and is true
+// hasInstanceSchedulerSkip checks if the instance_scheduler_skip field exists and contains "true"
 func hasInstanceSchedulerSkip(content gjson.Result) bool {
     skip := content.Get("instance_scheduler_skip")
-    return skip.Exists() && skip.String() == "true"
+    if skip.Exists() {
+        for _, value := range skip.Array() {
+            if value.String() == "true" {
+                return true
+            }
+        }
+    }
+    return false
 }
 
 // extractNames finds all "name" elements in the "environments" array, excluding those with instance_scheduler_skip or production
 func extractNames(content JSONFileContent, envName string) []string {
-
     var names []string
     jsonData, err := json.Marshal(content)
-
     if err != nil {
         fmt.Println("Failed to marshal JSON content:", err)
         return names
     }
 
     environments := gjson.GetBytes(jsonData, "environments")
-
     environments.ForEach(func(_, env gjson.Result) bool {
         name := env.Get("name").String()
         if name == "" {

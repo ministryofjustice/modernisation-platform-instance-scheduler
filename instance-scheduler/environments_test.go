@@ -138,15 +138,6 @@ func TestHasInstanceSchedulerSkip(t *testing.T) {
     }
 }
 
-    // Run test cases
-    for _, tc := range testCases {
-        t.Run(tc.name, func(t *testing.T) {
-            result := hasInstanceSchedulerSkip(tc.content)
-            assert.Equal(t, tc.expected, result)
-        })
-    }
-}
-
 
 // Unit test for extractNames
 func TestExtractNames(t *testing.T) {
