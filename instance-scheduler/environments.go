@@ -9,7 +9,7 @@ import (
     "net/url"
     "io"
     "github.com/tidwall/gjson"
-    "path"
+   // "path"
 )
 
 // Additional functions that parse json data from the environments directory obtail the full list of in-scope non-prod environments.
@@ -53,7 +53,8 @@ func FetchJSON(rawURL string) (JSONFileContent, error) {
 // fetches the environments JSON data from GitHub
 func fetchGitHubData(baseURL, repoOwner, repoName, branch, directory string) ([]byte, error) {
 
-    u, err := url.Parse(path.Join(baseURL, repoOwner, repoName, "contents", directory))
+    //u, err := url.Parse(path.Join(baseURL, repoOwner, repoName, "contents", directory))
+    u, err := url.Parse(fmt.Sprintf("%s/repos/%s/%s/contents/%s", baseURL, repoOwner, repoName, directory))
     if err != nil {
         return nil, fmt.Errorf("failed to parse URL: %w", err)
     }
