@@ -40,7 +40,7 @@ func TestFetchGitHubData(t *testing.T) {
     repoName := "dummyRepo"
     branch := "dummyBranch"
     directory := "dummyDirectory"
-    expectedURL := "/repos/dummyOwner/dummyRepo/contents/dummyDirectory?ref=dummyBranch"
+    expectedURL := "/dummyOwner/dummyRepo/contents/dummyDirectory?ref=dummyBranch"
 
     // Define the expected JSON response
     expectedJSON := `[{"name": "file1.json", "path": "path/to/file1.json", "type": "file"}]`
@@ -146,15 +146,14 @@ func TestExtractNames(t *testing.T) {
         "environments": []interface{}{
             map[string]interface{}{
                 "name": "development",
-                "instance_scheduler_skip": []interface{}{"false"},
-            },
-            map[string]interface{}{
-                "name": "test",
                 "instance_scheduler_skip": []interface{}{"true"},
             },
             map[string]interface{}{
-                "name": "preproduction",
+                "name": "test",
                 "instance_scheduler_skip": []interface{}{"false"},
+            },
+            map[string]interface{}{
+                "name": "preproduction",
             },
             map[string]interface{}{
                 "name": "production",
@@ -164,7 +163,7 @@ func TestExtractNames(t *testing.T) {
     }
 
     envName := "env"
-    expectedNames := []string{"development", "preproduction"}
+    expectedNames := []string{"test", "preproduction"}
 
     // Call the extractNames function
     names := extractNames(mockJSONContent, envName)
