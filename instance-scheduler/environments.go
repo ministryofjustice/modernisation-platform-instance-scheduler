@@ -4,19 +4,15 @@ import (
 	"encoding/json"
 	//"errors"
 	//"log"
-	"strings"
 	"fmt"
     "net/http"
     "net/url"
     "io"
     "github.com/tidwall/gjson"
-
+    "path"
 )
 
 // Additional functions that parse json data from the environments directory obtail the full list of in-scope non-prod environments.
-
-// JSONFileContent represents the structure of the JSON content
-type JSONFileContent map[string]interface{}
 
 // GitHubFile represents a single file in a GitHub directory as returned by the GitHub API
 type GitHubFile struct {
@@ -101,7 +97,7 @@ func fetchGitHubData(baseURL, repoOwner, repoName, branch, directory string) ([]
 // processGitHubData processes the JSON data and returns a slice of GitHubFile
 func processGitHubData(body []byte) ([]GitHubFile, error) {
     var files []GitHubFile
-    err = json.Unmarshal(body, &files)
+    err := json.Unmarshal(body, &files)
     if err != nil {
         return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
     }
