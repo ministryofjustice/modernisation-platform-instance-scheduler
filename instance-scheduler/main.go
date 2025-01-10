@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -29,7 +28,6 @@ type InstanceSchedulingResponse struct {
 
 type InstanceScheduler struct {
 	LoadDefaultConfig                        func() (aws.Config, error)
-	GetEnv                                   func(string) string
 	CreateSSMClient                          func(aws.Config) ISSMGetParameter
 	GetParameter                             func(client ISSMGetParameter, parameterName string) string
 	CreateSecretManagerClient                func(cfg aws.Config) ISecretManagerGetSecretValue
@@ -72,8 +70,8 @@ func (instanceScheduler *InstanceScheduler) handler(request InstanceSchedulingRe
 		}, err
 	}
 
-	skipAccounts := instanceScheduler.GetEnv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS")
-	log.Printf("INSTANCE_SCHEDULING_SKIP_ACCOUNTS=%v\n", skipAccounts)
+	// skipAccounts := instanceScheduler.GetEnv("INSTANCE_SCHEDULING_SKIP_ACCOUNTS")
+	// log.Printf("INSTANCE_SCHEDULING_SKIP_ACCOUNTS=%v\n", skipAccounts)
 
 	ssmClient := instanceScheduler.CreateSSMClient(cfg)
 	secretId := instanceScheduler.GetParameter(ssmClient, "environment_management_arn")
@@ -81,7 +79,7 @@ func (instanceScheduler *InstanceScheduler) handler(request InstanceSchedulingRe
 	secretsManagerClient := instanceScheduler.CreateSecretManagerClient(cfg)
 	environments := instanceScheduler.GetSecret(secretsManagerClient, secretId)
 
-	accounts := getNonProductionAccounts(environments, skipAccounts)
+	accounts := getNonProductionAccounts(environments)
 	for accName, accId := range accounts {
 		ec2Client := instanceScheduler.GetEc2ClientForMemberAccount(cfg, accName, accId)
 		rdsClient := instanceScheduler.GetRDSClientForMemberAccount(cfg, accName, accId)
@@ -116,7 +114,6 @@ func (instanceScheduler *InstanceScheduler) handler(request InstanceSchedulingRe
 func main() {
 	InstanceScheduler := InstanceScheduler{
 		LoadDefaultConfig:                        LoadDefaultConfig,
-		GetEnv:                                   os.Getenv,
 		CreateSSMClient:                          CreateSSMClient,
 		GetParameter:                             getParameter,
 		CreateSecretManagerClient:                CreateSecretManagerClient,

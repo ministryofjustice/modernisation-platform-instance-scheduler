@@ -4,7 +4,19 @@
 
 A Go lambda function for stopping and starting instance, rds resources and autoscaling groups. The function is used by the [Ministry of Justice Modernisation Platform](https://github.com/ministryofjustice/modernisation-platform) and can be re-used in any environment with minimal changes.
 
+The list of MP accounts to be included by the scheduler, whether production or for testing purposes, is determined by the following criteria based on information obtained from the github/ministryofjustice/modernisation-platform/environments json files.
+
+- the account-type is "member"
+- the account is not production
+- the field "instance_scheduler_skip": ["true"] has NOT been added to the "environment" list in the json.
+
+If the account does not meet any of the above criteria then it is excluded.
+
 ## Requirements
+
+Testing changes to the go source code of the module can be done by creating a Pull Request with a new branch containing the changes. The log output of the github workflow build-test-push.yml will show the results. 
+
+For development & running the scheduler locally:
 
 - [AWS Vault](https://github.com/99designs/aws-vault) with a profile configured to access the core-shared-services account
 - [Docker installed](https://www.docker.com/community-edition)
@@ -58,8 +70,7 @@ Run Tests
 
 ## Configuration
 
-- Environment variable **INSTANCE_SCHEDULING_SKIP_ACCOUNTS**: A comma-separated list of account names to be skipped from instance scheduling. For example:
-  `export INSTANCE_SCHEDULING_SKIP_ACCOUNTS="xhibit-portal-development,another-development,"`. As can be observed in this example, every account name must be suffixed with a leading comma, hence the last comma in the list.
+Note that setting a local environment variable **INSTANCE_SCHEDULING_SKIP_ACCOUNTS** is no longer required and it is not used.
 
 ## References
 

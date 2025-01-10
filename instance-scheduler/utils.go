@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"strings"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -52,23 +53,85 @@ func CreateSecretManagerClient(config aws.Config) ISecretManagerGetSecretValue {
 	return secretsmanager.NewFromConfig(config)
 }
 
-func getNonProductionAccounts(environments string, skipAccountNames string) map[string]string {
-	accounts := make(map[string]string)
+func getNonProductionAccounts(environments string) map[string]string {
+    accounts := make(map[string]string)
 
-	var allAccounts map[string]interface{}
-	json.Unmarshal([]byte(environments), &allAccounts)
+    // Fetch the list of in-scope environments from modernisation-platform/environments
+    baseURL := "https://api.github.com/repos"
+    repoOwner := "ministryofjustice"
+    repoName := "modernisation-platform"
+    branch := "main"
+    directory := "environments"
 
-	for _, record := range allAccounts {
-		if rec, ok := record.(map[string]interface{}); ok {
-			for key, val := range rec {
-				// Skip if the account's name ends with "-production", for example: performance-hub-production will be skipped
-				if !strings.HasSuffix(key, "-production") && (len(skipAccountNames) < 1 || !strings.Contains(skipAccountNames, key)) {
-					accounts[key] = val.(string)
-				}
-			}
-		}
-	}
-	return accounts
+    // Step 1: Fetch the JSON data from GitHub
+    body, err := fetchGitHubData(baseURL, repoOwner, repoName, branch, directory)
+    if err != nil {
+        log.Fatalf("getNonProductionAccounts - Failed to fetch directory listing from GitHub: %v", err)
+    }
+
+    // Step 2: Process the JSON data
+    files, err := processGitHubData(body)
+    if err != nil {
+        log.Fatalf("getNonProductionAccounts - Failed to process GitHub data: %v", err)
+    }
+
+	// Step 3: Iterate through returned files, check the JSON of each file and obtain a list of accounts to be inlcuded by the scheduler
+    var result []string
+
+    for _, file := range files {
+        // Only process JSON files
+        if file.Type == "file" && strings.HasSuffix(file.Name, ".json") {
+            fmt.Println("**** Processing file:", file.Name)
+            rawURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", repoOwner, repoName, branch, file.Path)
+			// The extracted json is held in the content
+			content, err := FetchJSON(rawURL)
+            if err != nil {
+                fmt.Println("Error fetching", rawURL, ":", err)
+                continue
+            }
+            if accountType, ok := content["account-type"]; ok {
+                // Check whether the account is of type "member". We want to exclude all accounts types that are not member.
+                if accountType == "member" {
+                    fileNameWithoutExt := strings.TrimSuffix(file.Name, ".json")
+					fmt.Println("Account is of type member:", fileNameWithoutExt)
+					// This returns a list of accounts for each environment that filters out 1) Production accounts, and 2) Those accounts with the instance_scheduler_skip flag.
+                    names := extractNames(content, fileNameWithoutExt)
+					// Avoids returning an empty list as there may be member environments that have no accounts to be included in the scheduler.
+					if len(names) == 0 {
+                        fmt.Println("No names extracted, skipping file:", file.Name)
+                        continue
+                    }
+					// Adds the environment-name.account-name to the list.
+                    for _, name := range names {
+                        finalName := fmt.Sprintf("%s-%s", fileNameWithoutExt, name)
+                        result = append(result, finalName)
+                    }
+                }
+            }
+        }
+    }
+
+    // Split the records string into a slice of strings
+    recordSlice := strings.Split(strings.Join(result, ","), ",")
+
+    // Parse the environments secret into a json object
+    var allAccounts map[string]interface{}
+    json.Unmarshal([]byte(environments), &allAccounts)
+
+    // This checks the secret of account names & numbers against those from "result" above to get definative list of numbers to be included in the scheduler run.
+    log.Printf("getNonProductionAccounts - Iterating over the fetched JSON from environments")
+    for _, record := range allAccounts {
+        if rec, ok := record.(map[string]interface{}); ok {
+            for key, val := range rec {
+                // Include if the account's name is in the fetched list
+                if contains(recordSlice, key) {
+                    accounts[key] = val.(string)
+                    fmt.Println("getNonProductionAccounts - Added account to list:", key)
+                }
+            }
+        }
+    }
+    return accounts
 }
 
 func parseAction(action string) (string, error) {
@@ -85,3 +148,15 @@ func parseAction(action string) (string, error) {
 func LoadDefaultConfig() (aws.Config, error) {
 	return config.LoadDefaultConfig(context.TODO(), config.WithRegion("eu-west-2"))
 }
+
+// Helper function to check if a slice contains a string
+func contains(slice []string, item string) bool {
+    for _, s := range slice {
+        if s == item {
+            return true
+        }
+    }
+    return false
+}
+
+
