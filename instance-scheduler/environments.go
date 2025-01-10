@@ -2,14 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	//"errors"
-	//"log"
 	"fmt"
     "net/http"
     "net/url"
     "io"
     "github.com/tidwall/gjson"
-   // "path"
 )
 
 // Additional functions that parse json data from the environments directory obtail the full list of in-scope non-prod environments.
