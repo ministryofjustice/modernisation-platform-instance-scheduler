@@ -60,7 +60,7 @@ func getNonProductionAccounts(environments string) map[string]string {
     baseURL := "https://api.github.com/repos"
     repoOwner := "ministryofjustice"
     repoName := "modernisation-platform"
-    branch := "main"
+    branch := "prep-for-issue/8674"
     directory := "environments"
 
     // Step 1: Fetch the JSON data from GitHub
