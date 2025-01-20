@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/rds v1.93.6
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.34.12
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.56.6
-	github.com/aws/aws-sdk-go-v2/service/sts v1.33.8
+	github.com/aws/aws-sdk-go-v2/service/sts v1.33.9
 	github.com/aws/smithy-go v1.22.1
 	github.com/stretchr/testify v1.10.0
 	github.com/tidwall/gjson v1.18.0
