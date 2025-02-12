@@ -71,20 +71,6 @@ jobs:
           fi
 
           unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
-
-      # - name: Download Go Modules
-      #   working-directory: instance-scheduler
-      #   run: go mod download
-      # - name: Assume InstanceSchedulerLambdaFunctionPolicy role and run GO tests
-      #   working-directory: instance-scheduler
-      #   run: |
-      #     aws sts assume-role --role-arn $LAMBDA_ROLE_ARN --role-session-name githubactionsgotestrolesession > creds
-      #     $(echo "export AWS_ACCESS_KEY_ID=$(echo $(cat creds) | sed -n 's/.*"AccessKeyId": "\([^"]*\)".*/\1/p')")
-      #     $(echo "export AWS_SECRET_ACCESS_KEY=$(echo $(cat creds) | sed -n 's/.*"SecretAccessKey": "\([^"]*\)".*/\1/p')")
-      #     $(echo "export AWS_SESSION_TOKEN=$(echo $(cat creds) | sed -n 's/.*"SessionToken": "\([^"]*\)".*/\1/p')")
-      #     aws sts get-caller-identity
-      #     go test -v
-      #     unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
       - name: Configure AWS credentials and assume github-actions role
         uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722 # v4.1.0
         with:
