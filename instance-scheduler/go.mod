@@ -5,7 +5,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.61
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.205.0
 	github.com/aws/aws-sdk-go-v2/service/rds v1.94.0
-	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.34.19
+	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.35.0
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.56.13
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.16
 	github.com/aws/smithy-go v1.22.3
