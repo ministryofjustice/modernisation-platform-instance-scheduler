@@ -80,8 +80,8 @@ Note that setting a local environment variable **INSTANCE_SCHEDULING_SKIP_ACCOUN
 4. [AWS Serverless Application Repository](https://aws.amazon.com/serverless/serverlessrepo/)
 5. [Terraform module for deployment of the lambda](https://github.com/ministryofjustice/modernisation-platform-terraform-lambda-function)
 
-[Standards Link]: https://github-community.cloud-platform.service.justice.gov.uk/repository-standards/modernisation-platform-instance-scheduler "Repo standards badge."
-[Standards Icon]: https://github-community.cloud-platform.service.justice.gov.uk/repository-standards/api/modernisation-platform-instance-scheduler/badge
+[Standards Link]: https://github-community.service.justice.gov.uk/repository-standards/modernisation-platform-instance-scheduler "Repo standards badge."
+[Standards Icon]: https://github-community.service.justice.gov.uk/repository-standards/api/modernisation-platform-instance-scheduler/badge
 [Format Code Icon]: https://img.shields.io/github/actions/workflow/status/ministryofjustice/modernisation-platform-instance-scheduler/format-code.yml?labelColor=231f20&style=for-the-badge&label=Formate%20Code
 [Format Code Link]: https://github.com/ministryofjustice/modernisation-platform-instance-scheduler/actions/workflows/format-code.yml
 [Scorecards Icon]: https://img.shields.io/github/actions/workflow/status/ministryofjustice/modernisation-platform-instance-scheduler/scorecards.yml?branch=main&labelColor=231f20&style=for-the-badge&label=Scorecards
