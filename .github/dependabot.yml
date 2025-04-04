@@ -4,6 +4,10 @@ updates:
     directory: "/instance-scheduler"
     schedule:
       interval: "daily"
+    groups:
+      gomod-dependencies:
+        patterns:
+          - "*"
     open-pull-requests-limit: 10
   - package-ecosystem: "docker"
     directory: "/instance-scheduler"
@@ -13,5 +17,10 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "daily"    
+    groups:
+      action-dependencies:
+        patterns:
+          - "*"
     open-pull-requests-limit: 10
+    
