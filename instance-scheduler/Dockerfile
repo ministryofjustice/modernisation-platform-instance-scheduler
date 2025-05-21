@@ -1,4 +1,4 @@
-FROM public.ecr.aws/lambda/go:1 as builder
+FROM public.ecr.aws/lambda/go:1 AS builder
 
 # Copy function code
 COPY . .
@@ -12,5 +12,9 @@ RUN GOPROXY=proxy.golang.org CGO_ENABLED=0 go build \
 FROM public.ecr.aws/lambda/go:1
 
 COPY --from=builder instance-scheduler ${LAMBDA_TASK_ROOT}
+
+USER 1000:1000
+
 # Set the CMD to your handler (could also be done as a parameter override outside of the Dockerfile)
+
 CMD [ "instance-scheduler" ]
