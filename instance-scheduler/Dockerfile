@@ -1,5 +1,5 @@
 # Stage 1: Build the Go binary
-FROM golang:1.24 as builder
+FROM golang:1.24 AS builder
 
 # Set the Go working directory
 WORKDIR /app
@@ -15,6 +15,8 @@ FROM public.ecr.aws/lambda/provided:al2023
 
 # Copy the built binary from the builder stage to the Lambda task root
 COPY --from=builder /app/instance-scheduler ${LAMBDA_TASK_ROOT}
+
+USER 1000:1000
 
 # Set the entry point for the Lambda runtime
 ENTRYPOINT [ "./instance-scheduler" ]
