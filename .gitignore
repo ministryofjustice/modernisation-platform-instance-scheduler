@@ -18,3 +18,4 @@ env/
 terraform.tfstate
 tmp/
 venv/
+megalinter-reports
