@@ -1,13 +1,13 @@
 require (
 	github.com/aws/aws-lambda-go v1.50.0
 	github.com/aws/aws-sdk-go-v2 v1.39.3
-	github.com/aws/aws-sdk-go-v2/config v1.31.13
-	github.com/aws/aws-sdk-go-v2/credentials v1.18.17
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.257.2
-	github.com/aws/aws-sdk-go-v2/service/rds v1.108.3
-	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.39.7
-	github.com/aws/aws-sdk-go-v2/service/ssm v1.66.0
-	github.com/aws/aws-sdk-go-v2/service/sts v1.38.7
+	github.com/aws/aws-sdk-go-v2/config v1.31.14
+	github.com/aws/aws-sdk-go-v2/credentials v1.18.18
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.258.0
+	github.com/aws/aws-sdk-go-v2/service/rds v1.108.4
+	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.39.8
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.66.1
+	github.com/aws/aws-sdk-go-v2/service/sts v1.38.8
 	github.com/aws/smithy-go v1.23.1
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.18.0
