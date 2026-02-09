@@ -66,7 +66,7 @@ jobs:
         with:
           go-version: "1.23"
           cache-dependency-path: "**/go.sum"
-      - uses: aws-actions/setup-sam@c2a20b1822cc4a6bc594ff7f1dbb658758e383c3 # v2
+      - uses: aws-actions/setup-sam@d78e1a4a9656d3b223e59b80676a797f20093133 # v2
       - name: SAM Validate
         run: |
           sam validate --region ${{ env.AWS_REGION }}
