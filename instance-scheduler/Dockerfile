@@ -1,5 +1,5 @@
 # Stage 1: Build the Go binary
-FROM golang:1.26rc3 as builder
+FROM golang:1.26 as builder
 
 # Set the Go working directory
 WORKDIR /app
