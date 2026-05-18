@@ -21,7 +21,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"    
+      interval: "daily"
     cooldown:
       default-days: 7
     groups:
@@ -29,4 +29,3 @@ updates:
         patterns:
           - "*"
     open-pull-requests-limit: 10
-    
