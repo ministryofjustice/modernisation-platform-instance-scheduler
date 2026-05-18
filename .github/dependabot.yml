@@ -4,6 +4,8 @@ updates:
     directory: "/instance-scheduler"
     schedule:
       interval: "daily"
+    cooldown:
+      default-days: 7
     groups:
       gomod-dependencies:
         patterns:
@@ -13,14 +15,17 @@ updates:
     directory: "/instance-scheduler"
     schedule:
       interval: "daily"
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"    
+      interval: "daily"
+    cooldown:
+      default-days: 7
     groups:
       action-dependencies:
         patterns:
           - "*"
     open-pull-requests-limit: 10
-    
