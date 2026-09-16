@@ -14,7 +14,7 @@ If the account does not meet any of the above criteria then it is excluded.
 
 ## Requirements
 
-Testing changes to the go source code of the module can be done by creating a Pull Request with a new branch containing the changes. The log output of the github workflow build-test-push.yml will show the results. 
+Testing changes to the go source code of the module can be done by creating a Pull Request with a new branch containing the changes. The log output of the github workflow build-test-push.yml will show the results.
 
 For development & running the scheduler locally:
 
