@@ -58,7 +58,7 @@ jobs:
           echo "::add-mask::$ACCOUNT_NUMBER"
           echo "ACCOUNT_NUMBER=$ACCOUNT_NUMBER" >> "$GITHUB_ENV"
           echo "LAMBDA_ROLE_ARN=arn:aws:iam::$ACCOUNT_NUMBER:role/InstanceSchedulerLambdaFunctionPolicy" >> "$GITHUB_ENV"
-    
+  
       - name: Configure AWS credentials and assume github-actions role
         uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6.2.4
         with:
@@ -76,19 +76,29 @@ jobs:
       # Build inside Docker containers
       - name: SAM Build
         run: sam build --use-container --region ${{ env.AWS_REGION }}
+            
       - name: SAM Local Invoke
         run: |
-          aws sts assume-role --role-arn $LAMBDA_ROLE_ARN --role-session-name githubactionsgotestrolesession > creds
-          export AWS_ACCESS_KEY_ID=$(cat creds | jq -r '.Credentials.AccessKeyId')
-          export AWS_SECRET_ACCESS_KEY=$(cat creds | jq -r '.Credentials.SecretAccessKey')
-          export AWS_SESSION_TOKEN=$(cat creds | jq -r '.Credentials.SessionToken')
+          aws sts assume-role \
+            --role-arn "$LAMBDA_ROLE_ARN" \
+            --role-session-name githubactionsgotestrolesession \
+            > creds
+
+          export AWS_ACCESS_KEY_ID
+          AWS_ACCESS_KEY_ID="$(jq -r '.Credentials.AccessKeyId' creds)"
+
+          export AWS_SECRET_ACCESS_KEY
+          AWS_SECRET_ACCESS_KEY="$(jq -r '.Credentials.SecretAccessKey' creds)"
+
+          export AWS_SESSION_TOKEN
+          AWS_SESSION_TOKEN="$(jq -r '.Credentials.SessionToken' creds)"
 
           # Capture SAM output in a variable
-          SAM_OUTPUT=$(sam local invoke InstanceSchedulerFunction --event event.json 2>&1)
+          SAM_OUTPUT="$(sam local invoke InstanceSchedulerFunction --event event.json 2>&1)"
           echo "$SAM_OUTPUT"
 
           # Check for errors in the output
-          if echo "$SAM_OUTPUT" | grep -i "error"; then
+          if grep -qi "error" <<< "$SAM_OUTPUT"; then
             echo "Error detected in SAM invoke output."
             exit 1
           fi
@@ -102,19 +112,41 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - name: SAM Package
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        run: sam package --image-repository $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo --output-template-file packaged-template.yaml
+        run: >-
+          sam package
+          --image-repository
+          "${ACCOUNT_NUMBER}.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo"
+          --output-template-file packaged-template.yaml
+
       - name: Add the `latest` tag to the container image
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        run: docker tag instanceschedulerfunction:1.2 $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:latest
+        run: >-
+          docker tag
+          instanceschedulerfunction:1.2
+          "${ACCOUNT_NUMBER}.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:latest"
+
       - name: Login to ECR
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        run: aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com
+        run: >-
+          aws ecr get-login-password --region eu-west-2 |
+          docker login
+          --username AWS
+          --password-stdin
+          "${ACCOUNT_NUMBER}.dkr.ecr.eu-west-2.amazonaws.com"
+
       - name: Push the container image with the `latest` tag to ECR
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        run: docker push $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:latest
+        run: >-
+          docker push
+          "${ACCOUNT_NUMBER}.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:latest"
+
       - name: Deploy the latest image
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: |
-          IMAGE_TAG=$(grep -w ImageUri packaged-template.yaml | cut -d: -f3)
+          IMAGE_TAG="$(grep -w ImageUri packaged-template.yaml | cut -d: -f3)"
           echo "IMAGE_TAG=$IMAGE_TAG"
-          aws lambda update-function-code --function-name instance-scheduler-lambda-function --image-uri $ACCOUNT_NUMBER.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:${IMAGE_TAG}
+
+          aws lambda update-function-code \
+            --function-name instance-scheduler-lambda-function \
+            --image-uri \
+            "${ACCOUNT_NUMBER}.dkr.ecr.eu-west-2.amazonaws.com/instance-scheduler-ecr-repo:${IMAGE_TAG}"
