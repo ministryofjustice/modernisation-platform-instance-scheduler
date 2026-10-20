@@ -30,7 +30,7 @@ permissions: {}
 jobs:
 
   fetch-secrets:
-    uses: ministryofjustice/modernisation-platform-github-actions/.github/workflows/aws-secrets-management.yml@ebec2f2fda2f93172de61774b5875b9cef7462bc # v6.2.12
+    uses: ministryofjustice/modernisation-platform-github-actions/.github/workflows/aws-secrets-management.yml@5ec14e836f3de882a84f1c0b919645846a9d4f8e # v6.2.13
     permissions:
       contents: read
       id-token: write
@@ -51,7 +51,7 @@ jobs:
           persist-credentials: false
 
       - name: Decrypt Secrets
-        uses: ministryofjustice/modernisation-platform-github-actions/decrypt-secrets@ebec2f2fda2f93172de61774b5875b9cef7462bc # v6.2.12
+        uses: ministryofjustice/modernisation-platform-github-actions/decrypt-secrets@5ec14e836f3de882a84f1c0b919645846a9d4f8e # v6.2.13
         with:
           environment_management: ${{ needs.fetch-secrets.outputs.environment_management }}
           PASSPHRASE: ${{ secrets.PASSPHRASE }}
@@ -73,7 +73,7 @@ jobs:
         with:
           go-version: "1.23"
           cache-dependency-path: "**/go.sum"
-      - uses: aws-actions/setup-sam@89ddb14d60e682855e3fea4be85b3c56485de310 # v3
+      - uses: aws-actions/setup-sam@341eee193f458fa5aae5d52c94b0c5cf3a1c5a52 # v3
       - name: SAM Validate
         run: |
           sam validate --region ${{ env.AWS_REGION }}
