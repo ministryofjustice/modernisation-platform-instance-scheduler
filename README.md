@@ -1,6 +1,6 @@
 # Ministry of Justice Instance Scheduler
 
-[![Standards Icon]][Standards Link] [![Format Code Icon]][Format Code Link] [![Scorecards Icon]][Scorecards Link] [![SCA Icon]][SCA Link] [![Build test push Icon]][Build test push Link]
+[![Standards Icon]][Standards Link] [![Scorecards Icon]][Scorecards Link] [![Code Quality Icon]][Code Quality Link] [![Build test push Icon]][Build test push Link]
 
 A Go lambda function for stopping and starting instance, rds resources and autoscaling groups. The function is used by the [Ministry of Justice Modernisation Platform](https://github.com/ministryofjustice/modernisation-platform) and can be re-used in any environment with minimal changes.
 
@@ -82,11 +82,9 @@ Note that setting a local environment variable **INSTANCE_SCHEDULING_SKIP_ACCOUN
 
 [Standards Link]: https://github-community.service.justice.gov.uk/repository-standards/modernisation-platform-instance-scheduler "Repo standards badge."
 [Standards Icon]: https://github-community.service.justice.gov.uk/repository-standards/api/modernisation-platform-instance-scheduler/badge
-[Format Code Icon]: https://img.shields.io/github/actions/workflow/status/ministryofjustice/modernisation-platform-instance-scheduler/format-code.yml?labelColor=231f20&style=for-the-badge&label=Formate%20Code
-[Format Code Link]: https://github.com/ministryofjustice/modernisation-platform-instance-scheduler/actions/workflows/format-code.yml
 [Scorecards Icon]: https://img.shields.io/github/actions/workflow/status/ministryofjustice/modernisation-platform-instance-scheduler/scorecards.yml?branch=main&labelColor=231f20&style=for-the-badge&label=Scorecards
 [Scorecards Link]: https://github.com/ministryofjustice/modernisation-platform-instance-scheduler/actions/workflows/scorecards.yml
-[SCA Icon]: https://img.shields.io/github/actions/workflow/status/ministryofjustice/modernisation-platform-instance-scheduler/code-scanning.yml?branch=main&labelColor=231f20&style=for-the-badge&label=Secure%20Code%20Analysis
-[SCA Link]: https://github.com/ministryofjustice/modernisation-platform-instance-scheduler/actions/workflows/code-scanning.yml
+[Code Quality Icon]: https://img.shields.io/github/actions/workflow/status/ministryofjustice/modernisation-platform-instance-scheduler/code-quality.yml?branch=main&labelColor=231f20&style=for-the-badge&label=Code%20Quality
+[Code Quality Link]: https://github.com/ministryofjustice/modernisation-platform-instance-scheduler/actions/workflows/code-quality.yml
 [Build test push Icon]: https://img.shields.io/github/actions/workflow/status/ministryofjustice/modernisation-platform-instance-scheduler/code-scanning.yml?branch=main&labelColor=231f20&style=for-the-badge&label=Build%20Test%20Push
 [Build test push Link]: https://github.com/ministryofjustice/modernisation-platform-instance-scheduler/actions/workflows/build-test-push.yml
