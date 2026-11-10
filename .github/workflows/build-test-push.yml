@@ -71,7 +71,8 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.23"
+          go-version: "1.27"
+          check-latest: true
           cache-dependency-path: "**/go.sum"
       - uses: aws-actions/setup-sam@341eee193f458fa5aae5d52c94b0c5cf3a1c5a52 # v3
       - name: SAM Validate
